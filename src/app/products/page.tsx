@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
 import { ProductCard } from '@/components/product-card';
 import { SectionHeading } from '@/components/section-heading';
-import { products } from '@/data/products';
+import { getProducts } from '@/data/products';
 
 export const metadata: Metadata = {
   title: 'Products',
   description: 'Explore sample beauty products and training essentials from Make Up & More School of Cosmetology, with WhatsApp enquiry options.'
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await getProducts();
   return (
     <div className="section-shell py-16 sm:py-20">
       <SectionHeading

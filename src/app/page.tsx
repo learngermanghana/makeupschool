@@ -5,13 +5,15 @@ import { GalleryGrid } from '@/components/gallery-grid';
 import { SectionHeading } from '@/components/section-heading';
 import { TestimonialCard } from '@/components/testimonial-card';
 import { UpcomingClassesSection } from '@/components/upcoming-classes-section';
+import { getUpcomingClasses } from '@/data/upcoming-classes';
 import { courses } from '@/data/courses';
 import { homepageImages } from '@/data/media-library';
 import { testimonials } from '@/data/testimonials';
 import { siteConfig } from '@/data/site';
 import { createWhatsAppLink } from '@/lib/whatsapp';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const classes = await getUpcomingClasses();
   return (
     <div>
       <section className="bg-hero-glow">
@@ -169,7 +171,7 @@ export default function HomePage() {
             description="Discover upcoming cohorts for full programs and short courses, with limited slots and flexible weekday or weekend options."
           />
           <div className="mt-10">
-            <UpcomingClassesSection preview />
+            <UpcomingClassesSection preview classes={classes} />
           </div>
         </div>
       </section>

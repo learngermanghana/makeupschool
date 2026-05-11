@@ -2,19 +2,18 @@
 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
-import { upcomingClasses } from '@/data/upcoming-classes';
 import { reserveClassWhatsAppLink } from '@/lib/whatsapp';
 import { cn } from '@/lib/utils';
 import { ButtonLink } from './button-link';
 
 const filters = ['All', 'Full Programs', 'Short Courses'] as const;
 
-export function UpcomingClassesSection({ preview = false }: { preview?: boolean }) {
+export function UpcomingClassesSection({ preview = false, classes }: { preview?: boolean; classes: import('@/data/upcoming-classes').UpcomingClass[] }) {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
 
   const filteredClasses = useMemo(() => {
-    const classes = activeFilter === 'All' ? upcomingClasses : upcomingClasses.filter((item) => item.category === activeFilter);
-    return preview ? classes.slice(0, 3) : classes;
+    const visible = activeFilter === 'All' ? classes : classes.filter((item) => item.category === activeFilter);
+    return preview ? visible.slice(0, 3) : visible;
   }, [activeFilter, preview]);
 
   return (

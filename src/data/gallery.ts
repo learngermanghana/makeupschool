@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { getSedifexGallery } from '@/lib/server/sedifex';
 
 export type GalleryItem = {
   title: string;
@@ -9,65 +10,27 @@ export type GalleryItem = {
 
 const GALLERY_DIR = path.join(process.cwd(), 'public/uploads/gallery');
 const GALLERY_WEB_PATH = '/uploads/gallery';
-const EXCLUDED_GALLERY_FILES = new Set([
-  'editorial-make-up-look.svg',
-  'elegant-hair-finish.svg',
-  'hair-styling-workshop.svg',
-  'nail-artistry-practice.svg',
-  'salon-workstation-training.svg',
-  'soft-glam-bridal-finish.svg'
-]);
 
-function normalizeTitle(filename: string) {
-  return filename
-    .replace(/\.[^.]+$/, '')
-    .replace(/^WhatsApp Image \d{4}-\d{2}-\d{2} at /, '')
-    .replace(/\s*\(\d+\)$/, '')
-    .replace(/[._-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function toTitleCase(value: string) {
-  return value
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function inferCategory(filename: string) {
-  const value = filename.toLowerCase();
-
-  if (value.includes('bridal') || value.includes('makeup') || value.includes('make-up')) {
-    return 'Bridal / Makeup Looks';
+export async function getGalleryItems(): Promise<GalleryItem[]> {
+  try {
+    const sedifex = await getSedifexGallery();
+    if (sedifex?.gallery?.length) {
+      return sedifex.gallery
+        .filter((item: { isPublished?: boolean }) => item.isPublished !== false)
+        .sort((a: { sortOrder?: number }, b: { sortOrder?: number }) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+        .map((item: { caption?: string; alt?: string; url: string }) => ({
+          title: item.caption || item.alt || 'School Gallery',
+          category: 'Sedifex Gallery',
+          image: item.url
+        }));
+    }
+  } catch (error) {
+    console.warn('Falling back to local gallery files:', error);
   }
 
-  if (value.includes('hair') || value.includes('braid')) {
-    return 'Hair Work';
-  }
-
-  if (value.includes('workshop') || value.includes('workstation') || value.includes('class')) {
-    return 'Classroom Training';
-  }
-
-  return 'Student Practical Work';
-}
-
-export async function getGalleryItems() {
   const entries = await readdir(GALLERY_DIR, { withFileTypes: true });
-
   return entries
-    .filter(
-      (entry) =>
-        entry.isFile() &&
-        /\.(jpe?g|png|webp|avif|svg)$/i.test(entry.name) &&
-        !EXCLUDED_GALLERY_FILES.has(entry.name)
-    )
-    .map((entry) => ({
-      title: toTitleCase(normalizeTitle(entry.name)),
-      category: inferCategory(entry.name),
-      image: `${GALLERY_WEB_PATH}/${entry.name}`
-    }))
+    .filter((entry) => entry.isFile() && /\.(jpe?g|png|webp|avif|svg)$/i.test(entry.name))
+    .map((entry) => ({ title: entry.name.replace(/\.[^.]+$/, ''), category: 'School Gallery', image: `${GALLERY_WEB_PATH}/${entry.name}` }))
     .sort((a, b) => a.title.localeCompare(b.title));
 }
