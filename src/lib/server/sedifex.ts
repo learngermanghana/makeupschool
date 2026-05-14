@@ -1,12 +1,17 @@
 const CONTRACT_VERSION = '2026-04-13';
-const DEFAULT_BASE_URL = 'https://us-central1-sedifex-web.cloudfunctions.net';
+const DEFAULT_API_BASE_URL = 'https://us-central1-sedifex-web.cloudfunctions.net';
+const DEFAULT_SITE_BASE_URL = 'https://www.sedifex.com';
 
 function getEnv(name: string, fallback?: string) {
   return process.env[name] || fallback || '';
 }
 
-function getBaseUrl() {
-  return getEnv('SEDIFEX_API_BASE_URL', getEnv('SEDIFEX_INTEGRATION_API_BASE_URL', DEFAULT_BASE_URL)).replace(/\/$/, '');
+function getApiBaseUrl() {
+  return getEnv('SEDIFEX_API_BASE_URL', getEnv('SEDIFEX_INTEGRATION_API_BASE_URL', DEFAULT_API_BASE_URL)).replace(/\/$/, '');
+}
+
+function getSiteBaseUrl() {
+  return getEnv('SEDIFEX_SITE_BASE_URL', DEFAULT_SITE_BASE_URL).replace(/\/$/, '');
 }
 
 function getStoreId() {
@@ -23,8 +28,7 @@ function getApiKey() {
   );
 }
 
-async function sedifexFetch(path: string, authenticated = false) {
-  const baseUrl = getBaseUrl();
+async function sedifexFetch(path: string, authenticated = false, baseUrl = getApiBaseUrl()) {
   const headers: HeadersInit = {
     Accept: 'application/json',
     'X-Sedifex-Contract-Version': CONTRACT_VERSION
@@ -91,8 +95,8 @@ export async function getSedifexIntegrationProducts() {
 
 export async function getSedifexGallery() {
   const storeId = getStoreId();
-  if (!storeId) return null;
-  return sedifexFetch(`/integrationGallery?storeId=${encodeURIComponent(storeId)}`);
+  if (!storeId || !getApiKey()) return null;
+  return sedifexFetch(`/integrationGallery?storeId=${encodeURIComponent(storeId)}`, true);
 }
 
 export async function getSedifexAvailability() {
@@ -106,5 +110,5 @@ export async function getSedifexPublicBlog(slug?: string) {
   if (!storeId) return null;
   const params = new URLSearchParams({ storeId });
   if (slug) params.set('slug', slug);
-  return sedifexFetch(`/api/public-blog?${params.toString()}`);
+  return sedifexFetch(`/api/public-blog?${params.toString()}`, false, getSiteBaseUrl());
 }
