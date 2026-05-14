@@ -54,3 +54,8 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   }
   return fallbackPosts;
 }
+
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  const posts = await getBlogPosts();
+  return posts.find((post) => post.slug === slug) || null;
+}

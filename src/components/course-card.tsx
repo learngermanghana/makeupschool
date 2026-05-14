@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Course } from '@/data/courses';
 import { registerWhatsAppLink } from '@/lib/whatsapp';
 import { ButtonLink } from './button-link';
+import { ExpandableText } from './expandable-text';
 
 export function CourseCard({ course }: { course: Course }) {
   return (
@@ -23,7 +24,7 @@ export function CourseCard({ course }: { course: Course }) {
           </div>
           <span className="rounded-full bg-nude px-4 py-2 text-sm text-charcoal/80">{course.duration}</span>
         </div>
-        <p className="mt-5 text-sm leading-7 text-charcoal/70">{course.summary}</p>
+        <ExpandableText text={course.summary} className="mt-5 text-sm leading-7 text-charcoal/70" />
         {course.modules?.length ? (
           <ul className="mt-6 space-y-3 text-sm text-charcoal/80">
             {course.modules.map((module) => (
@@ -35,7 +36,8 @@ export function CourseCard({ course }: { course: Course }) {
           </ul>
         ) : null}
         <div className="mt-7 flex flex-wrap gap-3">
-          <ButtonLink href="/register" variant="primary">Apply now</ButtonLink>
+          <ButtonLink href={`/courses/${course.slug}`} variant="primary">View details</ButtonLink>
+          <ButtonLink href="/register" variant="secondary">Apply now</ButtonLink>
           <ButtonLink href={registerWhatsAppLink(course.name)} variant="secondary" external>
             Ask on WhatsApp
           </ButtonLink>

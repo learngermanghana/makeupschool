@@ -37,11 +37,9 @@ export default async function BlogPage() {
               <h2 className="text-2xl font-semibold text-charcoal">{post.title}</h2>
               <p className="text-sm leading-7 text-charcoal/70">{post.excerpt || 'Read the full post for details.'}</p>
               <div className="flex gap-3">
-                {post.linkUrl ? (
-                  <Link href={post.linkUrl} target="_blank" rel="noreferrer" className="rounded-full bg-charcoal px-5 py-3 text-sm font-medium text-white transition hover:bg-charcoal/90">
-                    Continue reading
-                  </Link>
-                ) : null}
+                <Link href={`/blog/${post.slug}`} className="rounded-full bg-charcoal px-5 py-3 text-sm font-medium text-white transition hover:bg-charcoal/90">
+                  Continue reading
+                </Link>
                 <span className="rounded-full bg-nude px-4 py-3 text-sm text-charcoal/75">/{post.slug}</span>
               </div>
             </div>

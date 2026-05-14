@@ -43,3 +43,8 @@ export async function getCourses() {
 
   return courses;
 }
+
+export async function getCourseBySlug(slug: string) {
+  const allCourses = await getCourses();
+  return allCourses.find((course) => course.slug === slug) || null;
+}

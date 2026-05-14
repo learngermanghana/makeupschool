@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'sedifex.com' },
       { protocol: 'https', hostname: 'us-central1-sedifex-web.cloudfunctions.net' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'storage.googleapis.com' },
       { protocol: 'https', hostname: '*.googleusercontent.com' }
     ]
   }
