@@ -71,6 +71,17 @@ Notes:
 - The server also accepts common aliases (`GOOGLE_CLOUD_PROJECT`, `GCLOUD_PROJECT`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`) to simplify Vercel setups.
 - Use a Firebase service account with access to Firestore.
 
+## Sedifex integration environment variables
+
+For live Sedifex-powered products/classes/blog, set these server-side env vars in Vercel:
+
+```bash
+SEDIFEX_STORE_ID=your-store-id
+SEDIFEX_INTEGRATION_API_KEY=your-integration-key
+```
+
+Accepted aliases (for compatibility): `SEDIFEX_INTEGRATION_KEY`, `SEDFIEX_INTEGRATION_KEY`, `SEDFIEX_API_KEY`, `INTEGRATION_KEY`, `SEDFIEX_STORE_ID`, and `INTEGRATION_STORE_ID`.
+
 ## Build for production
 
 ```bash

@@ -10,11 +10,17 @@ function getBaseUrl() {
 }
 
 function getStoreId() {
-  return getEnv('SEDIFEX_STORE_ID');
+  return getEnv('SEDIFEX_STORE_ID', getEnv('SEDFIEX_STORE_ID', getEnv('INTEGRATION_STORE_ID')));
 }
 
 function getApiKey() {
-  return getEnv('SEDIFEX_INTEGRATION_API_KEY', getEnv('SEDIFEX_INTEGRATION_KEY'));
+  return getEnv(
+    'SEDIFEX_INTEGRATION_API_KEY',
+    getEnv(
+      'SEDIFEX_INTEGRATION_KEY',
+      getEnv('SEDFIEX_INTEGRATION_KEY', getEnv('SEDFIEX_API_KEY', getEnv('INTEGRATION_KEY')))
+    )
+  );
 }
 
 async function sedifexFetch(path: string, authenticated = false) {
