@@ -67,7 +67,6 @@ export function UpcomingClassesSection({ preview = false, classes }: { preview?:
               </dl>
               <div className="mt-7 flex flex-wrap gap-3">
                 <ButtonLink href={reserveClassWhatsAppLink(item.name)} external>Reserve on WhatsApp</ButtonLink>
-                <ButtonLink href="/register" variant="secondary">Register online</ButtonLink>
               </div>
             </div>
           </article>

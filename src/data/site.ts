@@ -29,6 +29,7 @@ export const navigation = [
   { href: '/upcoming-classes', label: 'Upcoming Classes' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/products', label: 'Products' },
+  { href: '/blog', label: 'Blog' },
   { href: '/register', label: 'Register' },
   { href: '/contact', label: 'Contact' }
 ];

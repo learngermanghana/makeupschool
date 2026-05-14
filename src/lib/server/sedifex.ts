@@ -32,9 +32,28 @@ async function sedifexFetch(path: string, authenticated = false) {
     headers['x-api-key'] = apiKey;
   }
 
-  const response = await fetch(`${baseUrl}${path}`, { headers, next: { revalidate: 60 } });
-  if (!response.ok) throw new Error(`Sedifex request failed (${response.status}) for ${path}`);
-  return response.json();
+  const url = `${baseUrl}${path}`;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(url, { headers, next: { revalidate: 60 } });
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    const requestId = response.headers.get('x-sedifex-request-id') || 'n/a';
+    const retryable = response.status >= 500 || response.status === 429;
+
+    if (!retryable || attempt === 2) {
+      throw new Error(`Sedifex request failed (${response.status}) for ${path}. requestId=${requestId}`);
+    }
+
+    const delayMs = 250 * 2 ** attempt;
+    console.warn(`Retrying Sedifex GET ${path} after ${response.status}. requestId=${requestId}. attempt=${attempt + 1}`);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  throw new Error(`Sedifex request failed for ${path}`);
 }
 
 export type SedifexCatalogItem = {
@@ -46,6 +65,16 @@ export type SedifexCatalogItem = {
   price?: number;
   itemType?: string;
   updatedAt?: string;
+};
+
+export type SedifexBlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  content?: string;
+  linkUrl?: string;
+  imageUrl?: string;
+  publishedAt?: string;
 };
 
 export async function getSedifexIntegrationProducts() {
@@ -64,4 +93,12 @@ export async function getSedifexAvailability() {
   const storeId = getStoreId();
   if (!storeId || !getApiKey()) return null;
   return sedifexFetch(`/v1IntegrationAvailability?storeId=${encodeURIComponent(storeId)}`, true);
+}
+
+export async function getSedifexPublicBlog(slug?: string) {
+  const storeId = getStoreId();
+  if (!storeId) return null;
+  const params = new URLSearchParams({ storeId });
+  if (slug) params.set('slug', slug);
+  return sedifexFetch(`/api/public-blog?${params.toString()}`);
 }
