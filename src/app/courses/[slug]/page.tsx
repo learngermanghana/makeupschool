@@ -14,7 +14,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
   if (!course) return { title: 'Course not found' };
-  return { title: course.name, description: course.summary };
+  return {
+    title: `${course.name} | Courses`,
+    description: course.summary,
+    alternates: { canonical: `/courses/${course.slug}` }
+  };
 }
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {

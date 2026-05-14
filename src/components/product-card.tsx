@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { Product } from '@/data/products';
 import { productWhatsAppLink } from '@/lib/whatsapp';
 import { ButtonLink } from './button-link';
@@ -11,7 +12,11 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
       <div className="space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="text-xl font-semibold text-charcoal">{product.name}</h3>
+          <h3 className="text-xl font-semibold text-charcoal">
+            <Link href={`/products/${product.slug}`} className="hover:underline">
+              {product.name}
+            </Link>
+          </h3>
           <span className="rounded-full bg-nude px-4 py-2 text-sm font-medium text-charcoal">{product.price}</span>
         </div>
         <p className="text-sm leading-7 text-charcoal/70">{product.description}</p>
