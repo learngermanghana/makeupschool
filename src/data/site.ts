@@ -1,4 +1,5 @@
 export const siteConfig = {
+  url: 'https://make-upmore.com',
   name: 'Make Up & More School of Cosmetology',
   shortName: 'Make Up & More',
   description:

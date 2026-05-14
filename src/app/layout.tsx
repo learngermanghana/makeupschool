@@ -7,7 +7,7 @@ import { MobileWhatsAppCTA } from '@/components/mobile-whatsapp-cta';
 import { siteConfig } from '@/data/site';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://makeup-and-more-school.vercel.app'),
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: `${siteConfig.name} | Premium Beauty Training in Tema`,
     template: `%s | ${siteConfig.shortName}`
