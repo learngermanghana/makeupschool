@@ -23,9 +23,11 @@ function toSlug(name: string) {
 export async function getCourses() {
   try {
     const catalog = await getSedifexIntegrationProducts();
-    const services = (catalog?.publicServices || []) as SedifexCatalogItem[];
-    if (services.length) {
-      return services.map((service) => ({
+    const catalogItems = (catalog?.products || []) as SedifexCatalogItem[];
+    const services = catalogItems.filter((item) => item.itemType?.toLowerCase() === 'service');
+    const normalizedServices = services.length ? services : ((catalog?.publicServices || []) as SedifexCatalogItem[]);
+    if (normalizedServices.length) {
+      return normalizedServices.map((service) => ({
         slug: toSlug(service.name),
         name: service.name,
         duration: 'See schedule',

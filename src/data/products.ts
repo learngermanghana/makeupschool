@@ -20,9 +20,11 @@ function formatPrice(value?: number) {
 export async function getProducts() {
   try {
     const catalog = await getSedifexIntegrationProducts();
-    const publicProducts = (catalog?.publicProducts || []) as SedifexCatalogItem[];
-    if (publicProducts.length) {
-      return publicProducts.map((item) => ({
+    const catalogItems = (catalog?.products || []) as SedifexCatalogItem[];
+    const productItems = catalogItems.filter((item) => item.itemType?.toLowerCase() === 'product');
+    const normalizedProducts = productItems.length ? productItems : ((catalog?.publicProducts || []) as SedifexCatalogItem[]);
+    if (normalizedProducts.length) {
+      return normalizedProducts.map((item) => ({
         name: item.name,
         image: item.imageUrl || '/uploads/products/radiance-facial-kit.svg',
         description: item.description || 'Professional beauty product',
