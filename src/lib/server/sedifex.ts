@@ -74,6 +74,25 @@ export type SedifexCatalogItem = {
   imageAlt?: string;
   price?: number;
   itemType?: string;
+  category?: string;
+  duration?: string;
+  schedule?: string;
+  attributes?: Record<string, unknown>;
+  updatedAt?: string;
+};
+
+export type SedifexAvailabilitySlot = {
+  id: string;
+  storeId?: string;
+  serviceId?: string;
+  startAt?: string;
+  endAt?: string;
+  timezone?: string;
+  capacity?: number;
+  seatsBooked?: number;
+  seatsRemaining?: number;
+  status?: string;
+  attributes?: Record<string, unknown>;
   updatedAt?: string;
 };
 
@@ -99,10 +118,17 @@ export async function getSedifexGallery() {
   return sedifexFetch(`/integrationGallery?storeId=${encodeURIComponent(storeId)}`, true);
 }
 
-export async function getSedifexAvailability() {
+export async function getSedifexAvailability(filters: { serviceId?: string; from?: string; to?: string } = {}) {
   const storeId = getStoreId();
   if (!storeId || !getApiKey()) return null;
-  return sedifexFetch(`/v1IntegrationAvailability?storeId=${encodeURIComponent(storeId)}`, true);
+
+  const params = new URLSearchParams({ storeId });
+
+  if (filters.serviceId) params.set('serviceId', filters.serviceId);
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+
+  return sedifexFetch(`/v1IntegrationAvailability?${params.toString()}`, true);
 }
 
 export async function getSedifexPublicBlog(slug?: string) {
