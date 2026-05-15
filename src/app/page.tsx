@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import { readdir } from 'node:fs/promises';
+import path from 'node:path';
 import { ButtonLink } from '@/components/button-link';
 import { CourseCard } from '@/components/course-card';
 import { GalleryGrid } from '@/components/gallery-grid';
@@ -13,9 +15,33 @@ import { siteConfig } from '@/data/site';
 import { createWhatsAppLink } from '@/lib/whatsapp';
 import { getGalleryItems } from '@/data/gallery';
 
+type StudentWorkImage = {
+  title: string;
+  src: string;
+  alt: string;
+};
+
+async function getHomepageStudentWork(): Promise<StudentWorkImage[]> {
+  const homepageDir = path.join(process.cwd(), 'public/uploads/homepage');
+  const entries = await readdir(homepageDir, { withFileTypes: true });
+  const fileNames = entries
+    .filter((entry) => entry.isFile() && /\.(jpe?g|png|webp|avif)$/i.test(entry.name))
+    .map((entry) => entry.name)
+    .filter((name) => /^hairdress(?:ing|ig) braids \d+\.jpe?g$/i.test(name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  return fileNames.map((name, index) => ({
+    title: index < 4 ? `Braids practical look ${index + 1}` : `Makeup practical look ${index - 3}`,
+    src: `/uploads/homepage/${name}`,
+    alt: `Student practical look ${index + 1}`
+  }));
+}
+
 export default async function HomePage() {
   const classes = await getUpcomingClasses();
   const galleryItems = await getGalleryItems();
+  const braidsAndMakeupImages = await getHomepageStudentWork();
+  const practicalLooks = braidsAndMakeupImages.length ? braidsAndMakeupImages : homepageImages.braids;
   return (
     <div>
       <section className="bg-hero-glow">
@@ -130,7 +156,7 @@ export default async function HomePage() {
           description="The first four photos highlight braiding practice, and the next four feature makeup practical work from class sessions."
         />
         <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {homepageImages.braids.map((item) => (
+          {practicalLooks.map((item) => (
             <figure key={item.title} className="overflow-hidden rounded-4xl border border-black/5 bg-white shadow-card">
               <div className="relative aspect-[4/5] bg-gradient-to-br from-white via-nude to-blush">
                 <Image
