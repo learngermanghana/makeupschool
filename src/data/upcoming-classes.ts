@@ -15,8 +15,14 @@ export async function getUpcomingClasses() {
   try {
     const [availability, catalog] = await Promise.all([getSedifexAvailability(), getSedifexIntegrationProducts()]);
     const services = new Map<string, SedifexCatalogItem>();
-    for (const item of (catalog?.publicServices || []) as SedifexCatalogItem[]) services.set(item.id, item);
-    const slots = availability?.slots || [];
+    const rawCatalog = [
+      ...(((catalog as any)?.publicServices || []) as SedifexCatalogItem[]),
+      ...(((catalog as any)?.services || []) as SedifexCatalogItem[]),
+      ...((((catalog as any)?.products || []) as SedifexCatalogItem[]).filter((item) => item.itemType?.toLowerCase() === 'service'))
+    ];
+    for (const item of rawCatalog) services.set(item.id, item);
+
+    const slots = (availability as any)?.slots || (availability as any)?.availability || (availability as any)?.data?.slots || [];
     if (slots.length) {
       return slots.map((slot: any) => {
         const service = services.get(slot.serviceId);

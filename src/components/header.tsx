@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { navigation, siteConfig } from '@/data/site';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,9 @@ import { createWhatsAppLink } from '@/lib/whatsapp';
 
 export function Header() {
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/70 bg-white/85 backdrop-blur-xl">
@@ -39,13 +43,35 @@ export function Header() {
         >
           Chat on WhatsApp
         </Link>
+        <button
+          type="button"
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-nav"
+          className="inline-flex items-center justify-center rounded-full border border-black/10 p-2 text-charcoal lg:hidden"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+        >
+          <span className="sr-only">Menu</span>
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            {isMenuOpen ? (
+              <path d="M6 6l12 12M18 6L6 18" />
+            ) : (
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            )}
+          </svg>
+        </button>
       </div>
-      <nav aria-label="Mobile navigation" className="border-t border-black/5 px-4 py-3 lg:hidden">
+      <nav
+        id="mobile-nav"
+        aria-label="Mobile navigation"
+        className={cn('border-t border-black/5 px-4 py-3 lg:hidden', isMenuOpen ? 'block' : 'hidden')}
+      >
         <div className="flex gap-2 overflow-x-auto pb-1">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
+              onClick={closeMenu}
               className={cn(
                 'whitespace-nowrap rounded-full px-4 py-2 text-sm transition',
                 pathname === item.href ? 'bg-charcoal text-white' : 'bg-nude text-charcoal/80'

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getCourseBySlug, getCourses } from '@/data/courses';
+import { toDescriptionBlocks } from '@/lib/content-format';
 import { ButtonLink } from '@/components/button-link';
 import { registerWhatsAppLink } from '@/lib/whatsapp';
 
@@ -25,6 +26,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
+  const summaryBlocks = toDescriptionBlocks(course.summary);
 
   return (
     <article className="section-shell py-16 sm:py-20">
@@ -33,7 +35,11 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
         <div className="relative aspect-[16/9] overflow-hidden rounded-3xl">
           <Image src={course.image} alt={course.imageAlt} fill className="object-cover" sizes="100vw" />
         </div>
-        <p className="text-base leading-8 text-charcoal/85">{course.summary}</p>
+        <div className="space-y-4 text-base leading-8 text-charcoal/85">
+          {summaryBlocks.map((block) => (
+            <p key={block}>{block}</p>
+          ))}
+        </div>
         <div className="flex gap-3">
           <ButtonLink href="/register" variant="primary">Apply now</ButtonLink>
           <ButtonLink href={registerWhatsAppLink(course.name)} variant="secondary" external>

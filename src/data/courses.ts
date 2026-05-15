@@ -1,4 +1,5 @@
 import { getSedifexIntegrationProducts, type SedifexCatalogItem } from '@/lib/server/sedifex';
+import { cleanCatalogDescription } from '@/lib/content-format';
 
 export type Course = {
   slug: string;
@@ -31,7 +32,7 @@ export async function getCourses() {
         slug: toSlug(service.name),
         name: service.name,
         duration: 'See schedule',
-        summary: service.description || 'Professional training program',
+        summary: cleanCatalogDescription(service.description) || 'Professional training program',
         category: 'Short Course' as const,
         image: service.imageUrl || '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49.jpeg',
         imageAlt: service.imageAlt || service.name

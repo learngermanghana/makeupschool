@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ButtonLink } from '@/components/button-link';
 import { getProductBySlug, getProducts } from '@/data/products';
+import { toDescriptionBlocks } from '@/lib/content-format';
 import { productWhatsAppLink } from '@/lib/whatsapp';
 
 export async function generateStaticParams() {
@@ -27,6 +28,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
+  const descriptionBlocks = toDescriptionBlocks(product.description);
 
   return (
     <article className="section-shell py-16 sm:py-20">
@@ -36,7 +38,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <Image src={product.image} alt={product.name} fill className="object-cover" sizes="100vw" />
         </div>
         <p className="inline-flex rounded-full bg-nude px-4 py-2 text-sm font-medium text-charcoal">{product.price}</p>
-        <p className="text-base leading-8 text-charcoal/85">{product.description}</p>
+        <div className="space-y-4 text-base leading-8 text-charcoal/85">
+          {descriptionBlocks.map((block) => (
+            <p key={block}>{block}</p>
+          ))}
+        </div>
         <div className="flex gap-3">
           <ButtonLink href={productWhatsAppLink(product.name)} variant="primary" external>
             Buy / Enquire on WhatsApp
