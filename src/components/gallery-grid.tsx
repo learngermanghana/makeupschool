@@ -1,8 +1,8 @@
 import Image from 'next/image';
-import { getGalleryItems } from '@/data/gallery';
+import { GalleryItem, getGalleryItems } from '@/data/gallery';
 
-export async function GalleryGrid({ limit }: { limit?: number }) {
-  const galleryItems = await getGalleryItems();
+export async function GalleryGrid({ limit, items: presetItems }: { limit?: number; items?: GalleryItem[] }) {
+  const galleryItems = presetItems ?? (await getGalleryItems());
   const items = limit ? galleryItems.slice(0, limit) : galleryItems;
 
   return (
