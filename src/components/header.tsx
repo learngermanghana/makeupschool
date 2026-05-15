@@ -21,7 +21,7 @@ export function Header() {
           <span className="text-lg font-semibold tracking-tight text-charcoal sm:text-xl">{siteConfig.shortName}</span>
           <span className="block text-xs text-charcoal/60">School of Cosmetology</span>
         </Link>
-        <nav aria-label="Primary navigation" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Primary navigation" className="hidden items-center gap-1 xl:flex">
           {navigation.map((item) => (
             <Link
               key={item.href}
@@ -48,7 +48,7 @@ export function Header() {
           aria-label="Toggle navigation menu"
           aria-expanded={isMenuOpen}
           aria-controls="mobile-nav"
-          className="inline-flex items-center justify-center rounded-full border border-black/10 p-2 text-charcoal lg:hidden"
+          className="inline-flex items-center justify-center rounded-full border border-black/10 p-2 text-charcoal xl:hidden"
           onClick={() => setIsMenuOpen((prev) => !prev)}
         >
           <span className="sr-only">Menu</span>
@@ -64,16 +64,16 @@ export function Header() {
       <nav
         id="mobile-nav"
         aria-label="Mobile navigation"
-        className={cn('border-t border-black/5 px-4 py-3 lg:hidden', isMenuOpen ? 'block' : 'hidden')}
+        className={cn('border-t border-black/5 px-4 py-3 xl:hidden', isMenuOpen ? 'block' : 'hidden')}
       >
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-col gap-2">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={closeMenu}
               className={cn(
-                'whitespace-nowrap rounded-full px-4 py-2 text-sm transition',
+                'rounded-2xl px-4 py-3 text-sm transition',
                 pathname === item.href ? 'bg-charcoal text-white' : 'bg-nude text-charcoal/80'
               )}
             >

@@ -11,9 +11,11 @@ import { homepageImages } from '@/data/media-library';
 import { testimonials } from '@/data/testimonials';
 import { siteConfig } from '@/data/site';
 import { createWhatsAppLink } from '@/lib/whatsapp';
+import { getGalleryItems } from '@/data/gallery';
 
 export default async function HomePage() {
   const classes = await getUpcomingClasses();
+  const galleryItems = await getGalleryItems();
   return (
     <div>
       <section className="bg-hero-glow">
@@ -216,19 +218,21 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section-shell py-20">
-        <SectionHeading
-          eyebrow="Student work"
-          title="A glimpse into practical sessions, polished beauty looks, and classroom energy."
-          description="The gallery now reads from the dedicated public/uploads/gallery folder so future student work is simple to refresh."
-        />
-        <div className="mt-10">
-          <GalleryGrid limit={4} />
-        </div>
-        <div className="mt-8">
-          <ButtonLink href="/gallery" variant="secondary">Browse full gallery</ButtonLink>
-        </div>
-      </section>
+      {galleryItems.length > 0 ? (
+        <section className="section-shell py-20">
+          <SectionHeading
+            eyebrow="Student work"
+            title="A glimpse into practical sessions, polished beauty looks, and classroom energy."
+            description="Explore real classroom practice, finished beauty looks, and the supportive learning atmosphere at Make Up & More School."
+          />
+          <div className="mt-10">
+            <GalleryGrid limit={4} items={galleryItems} />
+          </div>
+          <div className="mt-8">
+            <ButtonLink href="/gallery" variant="secondary">Browse full gallery</ButtonLink>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section-shell py-20">
         <SectionHeading
