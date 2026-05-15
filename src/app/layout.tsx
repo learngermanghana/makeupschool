@@ -19,12 +19,19 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     type: 'website',
     locale: 'en_GH',
-    siteName: siteConfig.name
+    siteName: siteConfig.name,
+    images: [{ url: '/logo.svg', alt: `${siteConfig.name} logo` }]
   },
   twitter: {
     card: 'summary_large_image',
     title: siteConfig.name,
-    description: siteConfig.description
+    description: siteConfig.description,
+    images: ['/logo.svg']
+  },
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+    apple: '/logo.svg'
   }
 };
 
