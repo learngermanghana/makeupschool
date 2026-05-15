@@ -1,4 +1,5 @@
 import { getSedifexIntegrationProducts, type SedifexCatalogItem } from '@/lib/server/sedifex';
+import { cleanCatalogDescription } from '@/lib/content-format';
 
 export type Product = {
   slug: string;
@@ -41,7 +42,7 @@ export async function getProducts() {
         id: item.id,
         name: item.name,
         image: item.imageUrl || '/uploads/products/radiance-facial-kit.svg',
-        description: item.description || 'Professional beauty product',
+        description: cleanCatalogDescription(item.description) || 'Professional beauty product',
         price: formatPrice(item.price)
       }));
     }
