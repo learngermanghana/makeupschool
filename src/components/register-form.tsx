@@ -3,8 +3,8 @@
 import type { FormEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { courses } from '@/data/courses';
-import { upcomingClasses } from '@/data/upcoming-classes';
+import type { Course } from '@/data/courses';
+import type { UpcomingClass } from '@/data/upcoming-classes';
 
 type FormState = {
   fullName: string;
@@ -24,7 +24,12 @@ const initialState: FormState = {
   message: ''
 };
 
-export function RegisterForm() {
+type Props = {
+  courses: Course[];
+  upcomingClasses: UpcomingClass[];
+};
+
+export function RegisterForm({ courses, upcomingClasses }: Props) {
   const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState('');
@@ -36,12 +41,35 @@ export function RegisterForm() {
     () => 'Submitting this form takes you to secure payment. After successful payment, we automatically save your registration for admissions follow-up.',
     []
   );
+
+  const courseOptions = useMemo(() => {
+    const byName = new Map<string, Course>();
+    for (const course of courses) {
+      if (course.name) byName.set(course.name, course);
+    }
+    for (const item of upcomingClasses) {
+      if (!byName.has(item.name)) {
+        byName.set(item.name, {
+          slug: item.id,
+          name: item.name,
+          duration: item.duration,
+          summary: 'Upcoming class from Sedifex availability',
+          category: item.category === 'Full Programs' ? 'Full Program' : 'Short Course',
+          image: item.image,
+          imageAlt: item.imageAlt
+        });
+      }
+    }
+    return Array.from(byName.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }, [courses, upcomingClasses]);
+
   const classDatesByCourse = useMemo(() => {
     return upcomingClasses.reduce<Record<string, string[]>>((accumulator, item) => {
       accumulator[item.name] = accumulator[item.name] ? [...accumulator[item.name], item.startDate] : [item.startDate];
       return accumulator;
     }, {});
-  }, []);
+  }, [upcomingClasses]);
+
   const selectedCourseDates = form.course ? classDatesByCourse[form.course] ?? [] : [];
 
   useEffect(() => {
@@ -155,7 +183,7 @@ export function RegisterForm() {
             className="input"
           >
             <option value="">Select a course</option>
-            {courses.map((course) => (
+            {courseOptions.map((course) => (
               <option key={course.slug} value={course.name}>{course.name}</option>
             ))}
           </select>
