@@ -2,13 +2,17 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { RegisterForm } from '@/components/register-form';
 import { SectionHeading } from '@/components/section-heading';
+import { getCourses } from '@/data/courses';
+import { getUpcomingClasses } from '@/data/upcoming-classes';
 
 export const metadata: Metadata = {
   title: 'Register',
   description: 'Register your interest in beauty therapy, hairdressing, massage therapy, and other cosmetology courses in Tema through our secure online admissions form.'
 };
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const [courses, upcomingClasses] = await Promise.all([getCourses(), getUpcomingClasses()]);
+
   return (
     <div className="section-shell py-16 sm:py-20">
       <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
@@ -21,7 +25,8 @@ export default function RegisterPage() {
           <div className="rounded-4xl border border-black/5 bg-nude/70 p-7 text-sm leading-7 text-charcoal/75 shadow-card">
             <p className="font-semibold text-charcoal">What happens next?</p>
             <ul className="mt-4 space-y-3">
-              <li>• You fill in your course interest and preferred start month.</li>
+              <li>• You fill in your course interest and preferred start date.</li>
+              <li>• The course and start dates are pulled from Sedifex when available.</li>
               <li>• You complete secure payment for your registration.</li>
               <li>• Once payment succeeds, your registration is saved permanently in our admissions database.</li>
               <li>• Our admissions team confirms availability and next steps.</li>
@@ -29,7 +34,7 @@ export default function RegisterPage() {
           </div>
         </div>
         <Suspense fallback={<div className="rounded-[2rem] border border-black/5 bg-white p-8 shadow-soft sm:p-10">Loading registration form...</div>}>
-          <RegisterForm />
+          <RegisterForm courses={courses} upcomingClasses={upcomingClasses} />
         </Suspense>
       </div>
     </div>
