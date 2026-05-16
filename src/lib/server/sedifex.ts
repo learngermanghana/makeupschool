@@ -28,7 +28,7 @@ function getApiKey() {
   );
 }
 
-async function sedifexFetch(path: string, authenticated = false, baseUrl = getApiBaseUrl()) {
+function buildHeaders(authenticated = false) {
   const headers: HeadersInit = {
     Accept: 'application/json',
     'X-Sedifex-Contract-Version': CONTRACT_VERSION
@@ -40,30 +40,42 @@ async function sedifexFetch(path: string, authenticated = false, baseUrl = getAp
       throw new Error('Missing SEDIFEX integration API key for authenticated endpoint.');
     }
     headers['x-api-key'] = apiKey;
+    headers.Authorization = `Bearer ${apiKey}`;
   }
 
+  return headers;
+}
+
+async function sedifexFetch(path: string, authenticated = false, baseUrl = getApiBaseUrl(), cacheMode: 'revalidate' | 'no-store' = 'revalidate') {
   const url = `${baseUrl}${path}`;
+  return sedifexFetchUrl(url, authenticated, cacheMode, path);
+}
+
+async function sedifexFetchUrl(url: string, authenticated = false, cacheMode: 'revalidate' | 'no-store' = 'revalidate', label = url) {
+  const headers = buildHeaders(authenticated);
+  const cacheConfig = cacheMode === 'no-store' ? { cache: 'no-store' as const } : { next: { revalidate: 60 } };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await fetch(url, { headers, next: { revalidate: 60 } });
+    const response = await fetch(url, { headers, ...cacheConfig });
 
     if (response.ok) {
       return response.json();
     }
 
     const requestId = response.headers.get('x-sedifex-request-id') || 'n/a';
+    const body = await response.text().catch(() => '');
     const retryable = response.status >= 500 || response.status === 429;
 
     if (!retryable || attempt === 2) {
-      throw new Error(`Sedifex request failed (${response.status}) for ${path}. requestId=${requestId}`);
+      throw new Error(`Sedifex request failed (${response.status}) for ${label}. requestId=${requestId}. body=${body.slice(0, 240)}`);
     }
 
     const delayMs = 250 * 2 ** attempt;
-    console.warn(`Retrying Sedifex GET ${path} after ${response.status}. requestId=${requestId}. attempt=${attempt + 1}`);
+    console.warn(`Retrying Sedifex GET ${label} after ${response.status}. requestId=${requestId}. attempt=${attempt + 1}`);
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  throw new Error(`Sedifex request failed for ${path}`);
+  throw new Error(`Sedifex request failed for ${label}`);
 }
 
 export type SedifexCatalogItem = {
@@ -85,6 +97,7 @@ export type SedifexAvailabilitySlot = {
   id: string;
   storeId?: string;
   serviceId?: string;
+  serviceName?: string;
   startAt?: string;
   endAt?: string;
   timezone?: string;
@@ -128,7 +141,13 @@ export async function getSedifexAvailability(filters: { serviceId?: string; from
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
 
-  return sedifexFetch(`/v1IntegrationAvailability?${params.toString()}`, true);
+  const directAvailabilityUrl = getEnv('SEDIFEX_AVAILABILITY_URL', getEnv('SEDIFEX_INTEGRATION_AVAILABILITY_URL'));
+  if (directAvailabilityUrl) {
+    const url = `${directAvailabilityUrl.replace(/\/$/, '')}?${params.toString()}`;
+    return sedifexFetchUrl(url, true, 'no-store', 'v1IntegrationAvailability');
+  }
+
+  return sedifexFetch(`/v1IntegrationAvailability?${params.toString()}`, true, getApiBaseUrl(), 'no-store');
 }
 
 export async function getSedifexPublicBlog(slug?: string) {
