@@ -70,6 +70,9 @@ function fmtSchedule(slot: SedifexAvailabilitySlot) {
 function fmtDuration(slot: SedifexAvailabilitySlot, service?: SedifexCatalogItem) {
   if (service?.duration) return service.duration;
 
+  const attributeDuration = typeof slot.attributes?.duration === 'string' ? slot.attributes.duration : '';
+  if (attributeDuration) return attributeDuration;
+
   if (!slot.startAt || !slot.endAt) return 'See class details';
 
   const start = new Date(slot.startAt).getTime();
@@ -112,33 +115,46 @@ function getCategory(service?: SedifexCatalogItem): UpcomingClass['category'] {
 }
 
 function extractSlots(payload: unknown): SedifexAvailabilitySlot[] {
-  const data = payload as any;
+  const data = payload as { slots?: unknown; availability?: unknown; data?: { slots?: unknown; availability?: unknown } };
 
-  const slots =
-    data?.slots ||
-    data?.availability ||
-    data?.data?.slots ||
-    data?.data?.availability ||
-    [];
+  const slots = data?.slots || data?.availability || data?.data?.slots || data?.data?.availability || [];
 
-  return Array.isArray(slots) ? slots : [];
+  return Array.isArray(slots) ? (slots as SedifexAvailabilitySlot[]) : [];
 }
 
-function extractServices(payload: unknown): SedifexCatalogItem[] {
-  const data = payload as any;
+export function extractServices(payload: unknown): SedifexCatalogItem[] {
+  const data = payload as { publicServices?: unknown; services?: unknown; products?: unknown };
+  const publicServices = Array.isArray(data?.publicServices) ? data.publicServices as SedifexCatalogItem[] : [];
+  const services = Array.isArray(data?.services) ? data.services as SedifexCatalogItem[] : [];
+  const products = Array.isArray(data?.products) ? data.products as SedifexCatalogItem[] : [];
 
   return [
-    ...((data?.publicServices || []) as SedifexCatalogItem[]),
-    ...((data?.services || []) as SedifexCatalogItem[]),
-    ...(((data?.products || []) as SedifexCatalogItem[]).filter((item) => item.itemType?.toLowerCase() === 'service'))
+    ...publicServices,
+    ...services,
+    ...products.filter((item) => item.itemType?.toLowerCase() === 'service')
   ];
+}
+
+function serviceKeyCandidates(service: SedifexCatalogItem) {
+  const extra = service as SedifexCatalogItem & { sourceProductId?: string; sourceId?: string };
+  return [service.id, extra.sourceProductId, extra.sourceId, service.name]
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+    .map((value) => value.trim());
+}
+
+export function buildServiceMap(catalog: unknown) {
+  const services = new Map<string, SedifexCatalogItem>();
+  for (const item of extractServices(catalog)) {
+    for (const key of serviceKeyCandidates(item)) services.set(key, item);
+  }
+  return services;
 }
 
 export async function getUpcomingClasses() {
   try {
     const fromDate = new Date();
     const toDate = new Date();
-    toDate.setDate(toDate.getDate() + 120);
+    toDate.setDate(toDate.getDate() + 240);
 
     const [availability, catalog] = await Promise.all([
       getSedifexAvailability({
@@ -148,10 +164,7 @@ export async function getUpcomingClasses() {
       getSedifexIntegrationProducts()
     ]);
 
-    const services = new Map<string, SedifexCatalogItem>();
-    for (const item of extractServices(catalog)) {
-      if (item.id) services.set(item.id, item);
-    }
+    const services = buildServiceMap(catalog);
 
     const slots = extractSlots(availability)
       .filter((slot) => !slot.status || slot.status.toLowerCase() === 'open')
@@ -165,12 +178,16 @@ export async function getUpcomingClasses() {
       return slots.map((slot) => {
         const service = slot.serviceId ? services.get(slot.serviceId) : undefined;
         const level = typeof slot.attributes?.level === 'string' ? slot.attributes.level : '';
+        const slotServiceName = typeof (slot as SedifexAvailabilitySlot & { serviceName?: string }).serviceName === 'string'
+          ? (slot as SedifexAvailabilitySlot & { serviceName?: string }).serviceName
+          : '';
+        const name = service?.name || slotServiceName || level || 'Upcoming Class';
 
         return {
           id: slot.id,
-          name: service?.name || level || 'Upcoming Class',
+          name,
           image: service?.imageUrl || '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49 (1).jpeg',
-          imageAlt: service?.imageAlt || service?.name || 'Class image',
+          imageAlt: service?.imageAlt || service?.name || `${name} class image`,
           startDate: fmtDate(slot.startAt),
           duration: fmtDuration(slot, service),
           schedule: level ? `${fmtSchedule(slot)} • ${level}` : fmtSchedule(slot),
