@@ -1,4 +1,4 @@
-# Make Up & More School of Cosmetology
+# Make Up & More School of Cosmetology.
 
 A premium, conversion-focused beauty school website built with Next.js App Router, TypeScript, React, and Tailwind CSS. The project is designed for Vercel deployment and uses local static data plus Firestore-backed registration capture so admissions enquiries are saved permanently.
 
