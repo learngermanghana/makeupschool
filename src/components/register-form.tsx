@@ -10,6 +10,7 @@ type FormState = {
   fullName: string;
   phone: string;
   email: string;
+  courseId: string;
   course: string;
   startMonth: string;
   message: string;
@@ -19,6 +20,7 @@ const initialState: FormState = {
   fullName: '',
   phone: '',
   email: '',
+  courseId: '',
   course: '',
   startMonth: '',
   message: ''
@@ -29,6 +31,11 @@ type Props = {
   upcomingClasses: UpcomingClass[];
 };
 
+function formatMoney(amount?: number, currency = 'GHS') {
+  if (!Number.isFinite(amount)) return 'Price from Sedifex';
+  return `${currency} ${Number(amount).toFixed(2)}`;
+}
+
 export function RegisterForm({ courses, upcomingClasses }: Props) {
   const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(initialState);
@@ -37,7 +44,7 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const helperText = useMemo(
-    () => 'Submitting this form creates your Sedifex student registration and takes you to secure payment. After payment, admissions can see your registration and payment reference in Sedifex.',
+    () => 'Submitting this form creates your Sedifex student registration and takes you to secure payment. The amount is pulled from the selected course in Sedifex.',
     []
   );
 
@@ -61,6 +68,11 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
     }
     return Array.from(byName.values()).sort((left, right) => left.name.localeCompare(right.name));
   }, [courses, upcomingClasses]);
+
+  const selectedCourse = useMemo(() => {
+    if (!form.courseId && !form.course) return null;
+    return courseOptions.find((course) => (course.serviceId || course.slug) === form.courseId || course.name === form.course) || null;
+  }, [courseOptions, form.course, form.courseId]);
 
   const classDatesByCourse = useMemo(() => {
     return upcomingClasses.reduce<Record<string, string[]>>((accumulator, item) => {
@@ -113,8 +125,11 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { reason?: string } | null;
-        if (payload?.reason === 'payment_config_missing') {
-          throw new Error('Registration payment amount is not configured on the server yet. Please contact support.');
+        if (payload?.reason === 'course_price_missing') {
+          throw new Error('The selected course has no price in Sedifex yet. Please contact admissions.');
+        }
+        if (payload?.reason === 'course_not_found') {
+          throw new Error('The selected course could not be found in Sedifex. Please refresh and try again.');
         }
         if (payload?.reason === 'sedifex_store_missing') {
           throw new Error('Sedifex store is not configured on the server yet. Please contact support.');
@@ -154,15 +169,33 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
         </Field>
         <Field label="Course interested in" required>
           <select
-            value={form.course}
-            onChange={(event) => setForm({ ...form, course: event.target.value, startMonth: '' })}
+            value={form.courseId}
+            onChange={(event) => {
+              const selected = courseOptions.find((course) => (course.serviceId || course.slug) === event.target.value);
+              setForm({
+                ...form,
+                courseId: event.target.value,
+                course: selected?.name || '',
+                startMonth: ''
+              });
+            }}
             className="input"
           >
             <option value="">Select a course</option>
-            {courseOptions.map((course) => (
-              <option key={course.slug} value={course.name}>{course.name}</option>
-            ))}
+            {courseOptions.map((course) => {
+              const value = course.serviceId || course.slug;
+              return (
+                <option key={value} value={value}>
+                  {course.name} — {formatMoney(course.price, course.currency)}
+                </option>
+              );
+            })}
           </select>
+          {selectedCourse ? (
+            <p className="text-xs leading-5 text-charcoal/60">
+              Selected course fee: <span className="font-semibold text-charcoal">{formatMoney(selectedCourse.price, selectedCourse.currency)}</span>
+            </p>
+          ) : null}
         </Field>
         <Field label="Preferred start date" required>
           <select
@@ -194,7 +227,7 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
         disabled={isSubmitting}
         className="mt-8 inline-flex rounded-full bg-charcoal px-6 py-3 text-sm font-medium text-white transition hover:bg-charcoal/90 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isSubmitting ? 'Redirecting to payment...' : 'Pay & submit registration'}
+        {isSubmitting ? 'Redirecting to payment...' : selectedCourse ? `Pay ${formatMoney(selectedCourse.price, selectedCourse.currency)} & submit registration` : 'Pay & submit registration'}
       </button>
     </form>
   );
