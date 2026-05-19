@@ -9,7 +9,7 @@ A premium, conversion-focused beauty school website built with Next.js App Route
 - SEO-friendly metadata for all core routes.
 - Reusable WhatsApp CTA helpers for course, class, and product enquiries.
 - Static local data files for courses, upcoming classes, gallery content, testimonials, and products.
-- Registration form creates a Sedifex student registration and redirects the student/parent to secure Paystack checkout.
+- Registration form pulls the selected course price from Sedifex integration products/courses, creates a Sedifex student registration, and redirects the student/parent to secure Paystack checkout.
 - Sitemap and robots support for better search indexing readiness.
 
 ## Project structure
@@ -50,25 +50,34 @@ The `/register` form now calls the website API route:
 POST /api/payments/initialize
 ```
 
-That route sends the registration details to Sedifex:
+That route re-checks the selected course against Sedifex:
+
+```txt
+GET /v1IntegrationProducts?storeId=<storeId>
+```
+
+It finds the selected course/service by `courseId` or course name, uses the course price from Sedifex, then sends the registration details to Sedifex:
 
 ```txt
 POST /api/student-registration-intake
 ```
 
-Sedifex creates the student registration, initializes Paystack checkout, and returns a checkout URL. After payment, the student is returned to `/register` with the payment reference. Admissions can review the registration in Sedifex under **Student registration**.
+Sedifex creates the student registration, initializes Paystack checkout using the course price, and returns a checkout URL. After payment, the student is returned to `/register` with the payment reference. Admissions can review the registration in Sedifex under **Student registration**.
 
 Set these server-side environment variables in `.env.local` and in Vercel:
 
 ```bash
-# Required: Sedifex store that receives student registrations
+# Required: Sedifex store that receives student registrations and owns the courses/services
 SEDIFEX_STORE_ID=your_store_id
 
-# Required: registration amount in major units, e.g. 100 means GHS 100
-SEDIFEX_REGISTRATION_AMOUNT_GHS=100
+# Required: used to read the selected course/service and its price from Sedifex
+SEDIFEX_INTEGRATION_API_KEY=your_integration_key
 
-# Optional, defaults to GHS
+# Optional, defaults to GHS if the course has no currency field
 SEDIFEX_REGISTRATION_CURRENCY=GHS
+
+# Optional, defaults to https://us-central1-sedifex-web.cloudfunctions.net
+SEDIFEX_API_BASE_URL=https://us-central1-sedifex-web.cloudfunctions.net
 
 # Optional, defaults to https://www.sedifex.com
 SEDIFEX_SITE_BASE_URL=https://www.sedifex.com
@@ -82,14 +91,12 @@ SEDIFEX_REGISTRATION_RETURN_URL=https://www.make-upmore.com/register
 
 Accepted store aliases for compatibility: `SEDFIEX_STORE_ID` and `INTEGRATION_STORE_ID`.
 
-Legacy amount aliases still work:
-
-```bash
-REGISTRATION_FEE_GHS=100
-REGISTRATION_FEE_KOBO=10000
-```
+Accepted key aliases for compatibility: `SEDIFEX_INTEGRATION_KEY`, `SEDFIEX_INTEGRATION_KEY`, `SEDFIEX_API_KEY`, and `INTEGRATION_KEY`.
 
 Notes:
+- Do not set a fixed registration amount unless you are using an older fallback branch. The live checkout amount is now pulled from the selected Sedifex course/service price.
+- Each course/service used for registration must have a valid positive price in Sedifex.
+- The website does not trust browser-sent prices. The server fetches Sedifex integration products again before creating checkout.
 - The website no longer needs to write successful registrations to its own Firestore first.
 - Sedifex is the source of truth for registration, payment reference, and admissions follow-up.
 - Payment final confirmation should still be handled by Sedifex/Paystack verification or webhook processing. The browser return page only shows the student a helpful success message.
@@ -162,5 +169,6 @@ The current implementation is intentionally static and simple to maintain. You c
 - [ ] Confirm the production domain for metadata and sitemap URLs
 - [ ] Replace placeholder gallery/product imagery with real branded assets
 - [ ] Verify WhatsApp number, phone number, and Facebook link
-- [ ] Add `SEDIFEX_STORE_ID` and `SEDIFEX_REGISTRATION_AMOUNT_GHS` in Vercel
+- [ ] Add `SEDIFEX_STORE_ID` and `SEDIFEX_INTEGRATION_API_KEY` in Vercel
+- [ ] Confirm each course/service in Sedifex has a valid price
 - [ ] Review copy and testimonials before launch
