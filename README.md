@@ -1,6 +1,6 @@
 # Make Up & More School of Cosmetology.
 
-A premium, conversion-focused beauty school website built with Next.js App Router, TypeScript, React, and Tailwind CSS. The project is designed for Vercel deployment and uses local static data plus Firestore-backed registration capture so admissions enquiries are saved permanently.
+A premium, conversion-focused beauty school website built with Next.js App Router, TypeScript, React, and Tailwind CSS. The project is designed for Vercel deployment and uses local static data plus Sedifex-powered registration checkout so admissions enquiries and payment references are saved in Sedifex.
 
 ## Features
 
@@ -9,7 +9,7 @@ A premium, conversion-focused beauty school website built with Next.js App Route
 - SEO-friendly metadata for all core routes.
 - Reusable WhatsApp CTA helpers for course, class, and product enquiries.
 - Static local data files for courses, upcoming classes, gallery content, testimonials, and products.
-- Registration form initializes a Paystack payment and only writes successful registrations to Firestore.
+- Registration form creates a Sedifex student registration and redirects the student/parent to secure Paystack checkout.
 - Sitemap and robots support for better search indexing readiness.
 
 ## Project structure
@@ -42,36 +42,59 @@ public/
 3. Open [http://localhost:3000](http://localhost:3000).
 
 
-## Registration payment + data save (Paystack + Firestore)
+## Registration payment + Sedifex student registration
 
-Set **server-side** Paystack and Firebase credentials in `.env.local` (and in Vercel project settings) for the `/register` form to process payment and save data:
+The `/register` form now calls the website API route:
+
+```txt
+POST /api/payments/initialize
+```
+
+That route sends the registration details to Sedifex:
+
+```txt
+POST /api/student-registration-intake
+```
+
+Sedifex creates the student registration, initializes Paystack checkout, and returns a checkout URL. After payment, the student is returned to `/register` with the payment reference. Admissions can review the registration in Sedifex under **Student registration**.
+
+Set these server-side environment variables in `.env.local` and in Vercel:
 
 ```bash
-# Paystack
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxx
-PAYSTACK_SECRET_KEY=sk_test_xxx
-# Optional, defaults to 500000 (GHS 5,000.00 if your Paystack account uses pesewas)
-REGISTRATION_FEE_KOBO=500000
+# Required: Sedifex store that receives student registrations
+SEDIFEX_STORE_ID=your_store_id
+
+# Required: registration amount in major units, e.g. 100 means GHS 100
+SEDIFEX_REGISTRATION_AMOUNT_GHS=100
+
 # Optional, defaults to GHS
-PAYSTACK_CURRENCY=GHS
+SEDIFEX_REGISTRATION_CURRENCY=GHS
 
-# Option A: individual variables
-FIREBASE_PROJECT_ID=your-firebase-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account-client-email
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Optional, defaults to https://www.sedifex.com
+SEDIFEX_SITE_BASE_URL=https://www.sedifex.com
 
-# Option B: full JSON as one variable
-FIREBASE_SERVICE_ACCOUNT_JSON='{"project_id":"...","client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}'
+# Optional override if Sedifex registration endpoint changes
+SEDIFEX_REGISTRATION_INTAKE_URL=https://www.sedifex.com/api/student-registration-intake
+
+# Optional return URL after Paystack payment
+SEDIFEX_REGISTRATION_RETURN_URL=https://www.make-upmore.com/register
+```
+
+Accepted store aliases for compatibility: `SEDFIEX_STORE_ID` and `INTEGRATION_STORE_ID`.
+
+Legacy amount aliases still work:
+
+```bash
+REGISTRATION_FEE_GHS=100
+REGISTRATION_FEE_KOBO=10000
 ```
 
 Notes:
-- Registration is written to Firestore **only after** a successful Paystack verification.
-- The server validates the verified Paystack transaction status, amount, currency, and customer email before saving a registration.
-- `NEXT_PUBLIC_FIREBASE_API_KEY` and other `NEXT_PUBLIC_*` values are for browser SDK use and are **not enough** for secure server writes.
-- The server also accepts common aliases (`GOOGLE_CLOUD_PROJECT`, `GCLOUD_PROJECT`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`) to simplify Vercel setups.
-- Use a Firebase service account with access to Firestore.
+- The website no longer needs to write successful registrations to its own Firestore first.
+- Sedifex is the source of truth for registration, payment reference, and admissions follow-up.
+- Payment final confirmation should still be handled by Sedifex/Paystack verification or webhook processing. The browser return page only shows the student a helpful success message.
 
-## Sedifex integration environment variables
+## Sedifex catalog/classes/blog integration environment variables
 
 For live Sedifex-powered products/classes/blog, set these server-side env vars in Vercel:
 
@@ -128,8 +151,8 @@ If you keep the same file names, you only need to replace the image file. If you
 
 The current implementation is intentionally static and simple to maintain. You can later add:
 
-- **Paystack** for checkout or registration payments.
-- **Firebase** for form storage, product inventory, gallery management, or class scheduling.
+- More Sedifex payment modes for deposits or instalments.
+- Firebase for extra local form storage if needed.
 - A CMS if non-technical staff should update the site.
 
 ## Vercel deployment checklist
@@ -139,4 +162,5 @@ The current implementation is intentionally static and simple to maintain. You c
 - [ ] Confirm the production domain for metadata and sitemap URLs
 - [ ] Replace placeholder gallery/product imagery with real branded assets
 - [ ] Verify WhatsApp number, phone number, and Facebook link
+- [ ] Add `SEDIFEX_STORE_ID` and `SEDIFEX_REGISTRATION_AMOUNT_GHS` in Vercel
 - [ ] Review copy and testimonials before launch
