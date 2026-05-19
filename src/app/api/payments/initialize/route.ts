@@ -5,6 +5,7 @@ type PaymentInitPayload = {
   fullName?: string;
   phone?: string;
   email?: string;
+  courseId?: string;
   course?: string;
   startMonth?: string;
   message?: string;
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
         fullName: payload.fullName!,
         phone: payload.phone!,
         email: payload.email!,
+        courseId: payload.courseId || '',
         course: payload.course!,
         startMonth: payload.startMonth!,
         message: payload.message || ''
