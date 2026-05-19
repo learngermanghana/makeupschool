@@ -31,6 +31,10 @@ type Props = {
   upcomingClasses: UpcomingClass[];
 };
 
+function normalizeCourseName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 function formatMoney(amount?: number, currency = 'GHS') {
   if (!Number.isFinite(amount)) return 'Price from Sedifex';
   return `${currency} ${Number(amount).toFixed(2)}`;
@@ -76,12 +80,27 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
 
   const classDatesByCourse = useMemo(() => {
     return upcomingClasses.reduce<Record<string, string[]>>((accumulator, item) => {
-      accumulator[item.name] = accumulator[item.name] ? [...accumulator[item.name], item.startDate] : [item.startDate];
+      const key = normalizeCourseName(item.name);
+      accumulator[key] = accumulator[key] ? [...accumulator[key], item.startDate] : [item.startDate];
       return accumulator;
     }, {});
   }, [upcomingClasses]);
 
-  const selectedCourseDates = form.course ? classDatesByCourse[form.course] ?? [] : [];
+  const selectedCourseDates = useMemo(() => {
+    if (!form.course) return [];
+
+    const exact = classDatesByCourse[normalizeCourseName(form.course)] ?? [];
+    if (exact.length) return exact;
+
+    if (!selectedCourse) return [];
+
+    const selectedName = normalizeCourseName(selectedCourse.name);
+    const partialMatches = Object.entries(classDatesByCourse)
+      .filter(([name]) => name.includes(selectedName) || selectedName.includes(name))
+      .flatMap(([, dates]) => dates);
+
+    return Array.from(new Set(partialMatches));
+  }, [classDatesByCourse, form.course, selectedCourse]);
 
   useEffect(() => {
     const status = searchParams.get('status');
