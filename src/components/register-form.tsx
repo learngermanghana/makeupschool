@@ -35,10 +35,9 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   const helperText = useMemo(
-    () => 'Submitting this form takes you to secure payment. After successful payment, we automatically save your registration for admissions follow-up.',
+    () => 'Submitting this form creates your Sedifex student registration and takes you to secure payment. After payment, admissions can see your registration and payment reference in Sedifex.',
     []
   );
 
@@ -77,46 +76,19 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
     const reference = searchParams.get('reference') || searchParams.get('trxref');
     const normalizedStatus = status?.toLowerCase();
 
-    if (!reference || isVerifyingPayment || success) {
+    if (!reference || success) {
       return;
     }
 
     if (normalizedStatus && normalizedStatus !== 'success') {
-      setError('Payment was not completed. Please try again or contact support if you were charged.');
+      setError('Payment was not completed. Please try again or contact admissions if you were charged.');
       return;
     }
 
-    async function verifyAndSave() {
-      setIsVerifyingPayment(true);
-      setError('');
-
-      try {
-        const response = await fetch('/api/registrations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ paymentReference: reference })
-        });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { reason?: string } | null;
-          const reason = payload?.reason ? ` (${payload.reason})` : '';
-          throw new Error(`Registration save failed with status ${response.status}${reason}`);
-        }
-
-        setForm(initialState);
-        setSuccess('Payment successful! Your registration has been submitted.');
-      } catch (verificationError) {
-        console.error(verificationError);
-        setError('Payment went through, but we could not finalize your registration. Please contact support with your payment reference.');
-      } finally {
-        setIsVerifyingPayment(false);
-      }
-    }
-
-    void verifyAndSave();
-  }, [isVerifyingPayment, searchParams, success]);
+    setForm(initialState);
+    setError('');
+    setSuccess(`Payment received. Your registration is in Sedifex with reference ${reference}. Admissions will contact you with the next steps.`);
+  }, [searchParams, success]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,22 +114,26 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { reason?: string } | null;
         if (payload?.reason === 'payment_config_missing') {
-          throw new Error('Payment is not configured on the server yet. Please contact support.');
+          throw new Error('Registration payment amount is not configured on the server yet. Please contact support.');
+        }
+        if (payload?.reason === 'sedifex_store_missing') {
+          throw new Error('Sedifex store is not configured on the server yet. Please contact support.');
         }
 
         const reason = payload?.reason ? ` (${payload.reason})` : '';
         throw new Error(`Payment initialization failed with status ${response.status}${reason}`);
       }
 
-      const payload = (await response.json()) as { authorizationUrl?: string };
-      if (!payload.authorizationUrl) {
+      const payload = (await response.json()) as { authorizationUrl?: string; checkoutUrl?: string };
+      const checkoutUrl = payload.authorizationUrl || payload.checkoutUrl;
+      if (!checkoutUrl) {
         throw new Error('Payment authorization link was not returned by the server.');
       }
 
-      window.location.assign(payload.authorizationUrl);
+      window.location.assign(checkoutUrl);
     } catch (submissionError) {
       console.error(submissionError);
-      setError('Could not start payment right now. Please try again in a moment.');
+      setError('Could not start payment right now. Please try again in a moment or contact admissions.');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,10 +191,10 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
       {success ? <p className="mt-4 text-sm font-medium text-emerald-700">{success}</p> : null}
       <button
         type="submit"
-        disabled={isSubmitting || isVerifyingPayment}
+        disabled={isSubmitting}
         className="mt-8 inline-flex rounded-full bg-charcoal px-6 py-3 text-sm font-medium text-white transition hover:bg-charcoal/90 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isSubmitting ? 'Redirecting to payment...' : isVerifyingPayment ? 'Finalizing registration...' : 'Pay & submit registration'}
+        {isSubmitting ? 'Redirecting to payment...' : 'Pay & submit registration'}
       </button>
     </form>
   );
