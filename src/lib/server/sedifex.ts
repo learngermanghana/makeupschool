@@ -15,15 +15,18 @@ function getSiteBaseUrl() {
 }
 
 function getStoreId() {
-  return getEnv('SEDIFEX_STORE_ID', getEnv('SEDFIEX_STORE_ID', getEnv('INTEGRATION_STORE_ID')));
+  return getEnv('SEDIFEX_BOOKING_TARGET_STORE_ID', getEnv('SEDIFEX_STORE_ID', getEnv('SEDFIEX_STORE_ID', getEnv('INTEGRATION_STORE_ID'))));
 }
 
 function getApiKey() {
   return getEnv(
-    'SEDIFEX_INTEGRATION_API_KEY',
+    'SEDIFEX_BOOKING_API_KEY',
     getEnv(
-      'SEDIFEX_INTEGRATION_KEY',
-      getEnv('SEDFIEX_INTEGRATION_KEY', getEnv('SEDFIEX_API_KEY', getEnv('INTEGRATION_KEY')))
+      'SEDIFEX_CHECKOUT_API_KEY',
+      getEnv(
+        'SEDIFEX_INTEGRATION_API_KEY',
+        getEnv('SEDIFEX_INTEGRATION_KEY', getEnv('SEDFIEX_INTEGRATION_KEY', getEnv('SEDFIEX_API_KEY', getEnv('INTEGRATION_KEY'))))
+      )
     )
   );
 }
@@ -105,6 +108,13 @@ export type SedifexAvailabilitySlot = {
   seatsBooked?: number;
   seatsRemaining?: number;
   status?: string;
+  eventKind?: string;
+  registrationMode?: string;
+  price?: number;
+  depositAmount?: number;
+  location?: string;
+  imageUrl?: string;
+  imageAlt?: string;
   attributes?: Record<string, unknown>;
   updatedAt?: string;
 };
