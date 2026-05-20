@@ -21,6 +21,17 @@ function validate(payload: PaymentInitPayload) {
   return Boolean(payload.fullName && payload.phone && payload.email && payload.course && payload.startMonth);
 }
 
+function buildRegistrationNotes(payload: PaymentInitPayload) {
+  const lines = [payload.message || ''];
+  if (payload.classSlotId) lines.push(`Selected upcoming class slot: ${payload.classSlotId}`);
+  if (payload.classSchedule) lines.push(`Class schedule: ${payload.classSchedule}`);
+  if (payload.classStartAt) lines.push(`Class start: ${payload.classStartAt}`);
+  if (payload.classEndAt) lines.push(`Class end: ${payload.classEndAt}`);
+  if (payload.classLocation) lines.push(`Class location: ${payload.classLocation}`);
+  if (payload.classSeats) lines.push(`Class seats: ${payload.classSeats}`);
+  return lines.filter(Boolean).join('\n');
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as PaymentInitPayload;
@@ -40,13 +51,7 @@ export async function POST(request: Request) {
         courseId: payload.courseId || '',
         course: payload.course!,
         startMonth: payload.startMonth!,
-        classSlotId: payload.classSlotId || '',
-        classStartAt: payload.classStartAt || '',
-        classEndAt: payload.classEndAt || '',
-        classSchedule: payload.classSchedule || '',
-        classLocation: payload.classLocation || '',
-        classSeats: payload.classSeats || '',
-        message: payload.message || ''
+        message: buildRegistrationNotes(payload)
       },
       callbackUrl
     );
