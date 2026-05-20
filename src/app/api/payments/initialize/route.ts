@@ -8,6 +8,12 @@ type PaymentInitPayload = {
   courseId?: string;
   course?: string;
   startMonth?: string;
+  classSlotId?: string;
+  classStartAt?: string;
+  classEndAt?: string;
+  classSchedule?: string;
+  classLocation?: string;
+  classSeats?: string;
   message?: string;
 };
 
@@ -34,6 +40,12 @@ export async function POST(request: Request) {
         courseId: payload.courseId || '',
         course: payload.course!,
         startMonth: payload.startMonth!,
+        classSlotId: payload.classSlotId || '',
+        classStartAt: payload.classStartAt || '',
+        classEndAt: payload.classEndAt || '',
+        classSchedule: payload.classSchedule || '',
+        classLocation: payload.classLocation || '',
+        classSeats: payload.classSeats || '',
         message: payload.message || ''
       },
       callbackUrl
