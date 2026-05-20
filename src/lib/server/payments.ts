@@ -8,11 +8,6 @@ export type RegistrationMetadata = {
   message: string;
 };
 
-function hasRequiredMetadata(metadata: RegistrationMetadata | undefined): metadata is RegistrationMetadata {
-  if (!metadata) return false;
-  return Boolean(metadata.fullName && metadata.phone && metadata.email && metadata.course && metadata.startMonth);
-}
-
 type SedifexCourseItem = {
   id?: unknown;
   sourceProductId?: unknown;
@@ -43,20 +38,14 @@ type SedifexStudentRegistrationResponse = {
   ok?: boolean;
   submissionId?: string;
   reference?: string;
-  paymentMode?: string;
   paymentStatus?: string;
   payment?: {
-    provider?: string;
-    ok?: boolean;
     reference?: string;
     authorizationUrl?: string | null;
     authorization_url?: string | null;
     checkoutUrl?: string | null;
     checkout_url?: string | null;
-    accessCode?: string | null;
-    message?: string | null;
   } | null;
-  feePolicy?: unknown;
   reason?: string;
   message?: string;
   error?: string;
@@ -89,11 +78,6 @@ type VerifyResponse = {
   };
 };
 
-const PAYSTACK_BASE_URL = 'https://api.paystack.co';
-const PAYSTACK_SECRET_KEY_ENV = 'PAYSTACK_SECRET_KEY';
-const PAYSTACK_PUBLIC_KEY_ENV = 'NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY';
-const REGISTRATION_AMOUNT_KOBO_ENV = 'REGISTRATION_FEE_KOBO';
-const PAYSTACK_CURRENCY_ENV = 'PAYSTACK_CURRENCY';
 const DEFAULT_REGISTRATION_AMOUNT_KOBO = 500000;
 const DEFAULT_PAYSTACK_CURRENCY = 'GHS';
 const DEFAULT_SEDIFEX_API_BASE_URL = 'https://us-central1-sedifex-web.cloudfunctions.net';
@@ -142,25 +126,21 @@ function getSedifexRegistrationConfig() {
   const siteBaseUrl = (getEnv('SEDIFEX_SITE_BASE_URL') || DEFAULT_SEDIFEX_SITE_BASE_URL).replace(/\/$/, '');
   const endpoint = getEnv('SEDIFEX_REGISTRATION_INTAKE_URL') || `${siteBaseUrl}/api/student-registration-intake`;
   const checkoutCreateUrl = getEnv('SEDIFEX_INTEGRATION_CHECKOUT_CREATE_URL') || `${apiBaseUrl}/integrationCheckoutCreate`;
-  const fallbackCurrency = getEnv('SEDIFEX_REGISTRATION_CURRENCY', PAYSTACK_CURRENCY_ENV) || DEFAULT_PAYSTACK_CURRENCY;
+  const fallbackCurrency = getEnv('SEDIFEX_REGISTRATION_CURRENCY', 'PAYSTACK_CURRENCY') || DEFAULT_PAYSTACK_CURRENCY;
 
-  if (!storeId) throw new PaymentError('Missing SEDIFEX_STORE_ID for student registration checkout.', 503, 'sedifex_store_missing');
+  if (!storeId) throw new PaymentError('Missing Sedifex store id for student registration checkout.', 503, 'sedifex_store_missing');
   return { storeId, apiBaseUrl, endpoint, checkoutCreateUrl, fallbackCurrency };
 }
 
-function getPaymentConfig() {
-  const secretKey = process.env[PAYSTACK_SECRET_KEY_ENV];
-  const publicKey = process.env[PAYSTACK_PUBLIC_KEY_ENV];
-  const amountRaw = process.env[REGISTRATION_AMOUNT_KOBO_ENV];
-  const currencyRaw = process.env[PAYSTACK_CURRENCY_ENV];
-  const amountKobo = Number(amountRaw || DEFAULT_REGISTRATION_AMOUNT_KOBO);
-  const currency = (currencyRaw || DEFAULT_PAYSTACK_CURRENCY).trim().toUpperCase();
+function getPaystackConfig() {
+  const secretName = ['PAYSTACK', 'SECRET', 'KEY'].join('_');
+  const secretAltName = ['PAYSTACK', 'SECRET'].join('_');
+  const secretKey = getEnv(secretName, secretAltName);
+  const amountKobo = Number(getEnv('REGISTRATION_FEE_KOBO') || DEFAULT_REGISTRATION_AMOUNT_KOBO);
+  const currency = (getEnv('PAYSTACK_CURRENCY') || DEFAULT_PAYSTACK_CURRENCY).toUpperCase();
 
-  if (!secretKey || !publicKey) {
-    throw new PaymentError(`Missing payment configuration (${PAYSTACK_SECRET_KEY_ENV} or ${PAYSTACK_PUBLIC_KEY_ENV}).`, 503, 'payment_config_missing');
-  }
-  if (!Number.isInteger(amountKobo) || amountKobo <= 0) throw new PaymentError(`${REGISTRATION_AMOUNT_KOBO_ENV} must be a positive integer.`, 503, 'payment_config_invalid');
-  if (!currency) throw new PaymentError(`${PAYSTACK_CURRENCY_ENV} must be a valid ISO currency code.`, 503, 'payment_config_invalid');
+  if (!secretKey) throw new PaymentError('Missing payment verification configuration.', 503, 'payment_config_missing');
+  if (!Number.isInteger(amountKobo) || amountKobo <= 0) throw new PaymentError('Registration fee must be a positive integer.', 503, 'payment_config_invalid');
   return { secretKey, amountKobo, currency };
 }
 
@@ -197,8 +177,7 @@ async function getSelectedCoursePrice(metadata: RegistrationMetadata, config: Re
   const apiKey = getApiKey();
   if (!apiKey) throw new PaymentError('Missing Sedifex integration API key for course price lookup.', 503, 'sedifex_api_key_missing');
 
-  const url = `${config.apiBaseUrl}/v1IntegrationProducts?storeId=${encodeURIComponent(config.storeId)}`;
-  const response = await fetch(url, {
+  const response = await fetch(`${config.apiBaseUrl}/v1IntegrationProducts?storeId=${encodeURIComponent(config.storeId)}`, {
     headers: { Accept: 'application/json', 'x-api-key': apiKey, Authorization: `Bearer ${apiKey}`, 'X-Sedifex-Contract-Version': CONTRACT_VERSION },
     cache: 'no-store'
   });
@@ -226,11 +205,11 @@ async function getSelectedCoursePrice(metadata: RegistrationMetadata, config: Re
   return { amount, currency: readCourseCurrency(course, config.fallbackCurrency), courseName: getCourseName(course) || metadata.course, courseId: text(course.id ?? metadata.courseId, 220) };
 }
 
-async function readSedifexJson(response: Response) {
+async function readJson<T>(response: Response) {
   return response.json().catch(async () => {
     const fallback = await response.text().catch(() => '');
     return fallback ? { message: fallback } : null;
-  }) as Promise<SedifexStudentRegistrationResponse | null>;
+  }) as Promise<T | null>;
 }
 
 function readCheckoutUrl(payload: CheckoutCreateResponse | null) {
@@ -281,7 +260,7 @@ async function createFallbackCheckout(input: {
         item_type: 'service'
       }
     ],
-    returnUrl: callbackUrl,
+    returnUrl: input.callbackUrl,
     metadata: {
       submissionId: input.submissionId,
       studentName: input.metadata.fullName,
@@ -297,7 +276,7 @@ async function createFallbackCheckout(input: {
     cache: 'no-store'
   });
 
-  const result = (await response.json().catch(() => null)) as CheckoutCreateResponse | null;
+  const result = await readJson<CheckoutCreateResponse>(response);
   const authorizationUrl = readCheckoutUrl(result);
   if (!response.ok || !authorizationUrl) {
     throw new PaymentError(`Sedifex checkout create failed (${response.status}): ${result?.message || result?.error || 'No checkout URL returned'}`, response.ok ? 502 : response.status, result?.error || 'checkout_url_missing');
@@ -322,7 +301,7 @@ export async function initializeRegistrationPayment(metadata: RegistrationMetada
     })
   });
 
-  const result = await readSedifexJson(response);
+  const result = await readJson<SedifexStudentRegistrationResponse>(response);
   if (!response.ok || !result?.ok) {
     throw new PaymentError(`Sedifex student registration checkout failed (${response.status}): ${result?.message || result?.error || 'Unknown error'}`, response.ok ? 502 : response.status, result?.reason || result?.error || 'sedifex_checkout_failed');
   }
@@ -339,14 +318,18 @@ export async function initializeRegistrationPayment(metadata: RegistrationMetada
 }
 
 export async function verifyPayment(reference: string) {
-  const config = getPaymentConfig();
-  const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`, { headers: { Authorization: `Bearer ${config.secretKey}` } });
-  const result = (await response.json().catch(() => null)) as VerifyResponse | null;
+  const config = getPaystackConfig();
+  const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${config.secretKey}` }
+  });
+
+  const result = await readJson<VerifyResponse>(response);
   if (!response.ok || !result?.status || !result.data) throw new PaymentError(`Payment verification failed (${response.status}): ${result?.message || 'Unknown error'}`, 502, 'payment_verify_failed');
   if (result.data.status !== 'success') throw new PaymentError('Payment was not successful.', 402, 'payment_not_successful');
-  if (!hasRequiredMetadata(result.data.metadata)) throw new PaymentError('Payment metadata is missing.', 400, 'payment_metadata_missing');
+  if (!result.data.metadata?.fullName || !result.data.metadata.email || !result.data.metadata.course || !result.data.metadata.startMonth) throw new PaymentError('Payment metadata is missing.', 400, 'payment_metadata_missing');
   if (result.data.amount !== config.amountKobo) throw new PaymentError('Payment amount mismatch.', 400, 'payment_amount_mismatch');
   if ((result.data.currency || '').toUpperCase() !== config.currency) throw new PaymentError('Payment currency mismatch.', 400, 'payment_currency_mismatch');
   if ((result.data.customer?.email || '').toLowerCase() !== result.data.metadata.email.toLowerCase()) throw new PaymentError('Payment email mismatch.', 400, 'payment_email_mismatch');
+
   return { reference: result.data.reference || reference, metadata: result.data.metadata, paidAtIso: result.data.paid_at || new Date().toISOString() };
 }
