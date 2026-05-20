@@ -7,6 +7,7 @@ import {
 
 export type UpcomingClass = {
   id: string;
+  slug: string;
   name: string;
   image: string;
   imageAlt: string;
@@ -25,9 +26,23 @@ export type UpcomingClass = {
   registrationMode?: string;
 };
 
+export function slugifyClass(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'class';
+}
+
+function buildClassSlug(name: string, id: string) {
+  const shortId = id.replace(/[^a-z0-9]/gi, '').slice(-6).toLowerCase();
+  return `${slugifyClass(name)}${shortId ? `-${shortId}` : ''}`;
+}
+
 export const upcomingClasses: UpcomingClass[] = [
   {
     id: 'beauty-therapy-april',
+    slug: 'beauty-therapy-april',
     name: 'Beauty Therapy',
     image: '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49 (1).jpeg',
     imageAlt: 'Beauty therapy practical training in session',
@@ -87,24 +102,30 @@ function fmtSlots(slot: SedifexAvailabilitySlot) {
   return 'Limited slots';
 }
 
-function getCategory(service?: SedifexCatalogItem): UpcomingClass['category'] {
-  const value = `${service?.category || service?.itemType || ''}`.toLowerCase();
+function getCategory(service?: SedifexCatalogItem, slot?: SedifexAvailabilitySlot): UpcomingClass['category'] {
+  const value = `${slot?.category || slot?.attributes?.category || service?.category || service?.itemType || slot?.eventKind || ''}`.toLowerCase();
   if (value.includes('full') || value.includes('program')) return 'Full Programs';
   return 'Short Courses';
 }
 
 function extractSlots(payload: unknown): SedifexAvailabilitySlot[] {
-  const data = payload as { slots?: unknown; availability?: unknown; data?: { slots?: unknown; availability?: unknown } };
-  const slots = data?.slots || data?.availability || data?.data?.slots || data?.data?.availability || [];
+  const data = payload as {
+    slots?: unknown;
+    availability?: unknown;
+    items?: unknown;
+    data?: { slots?: unknown; availability?: unknown; items?: unknown };
+  };
+  const slots = data?.slots || data?.availability || data?.items || data?.data?.slots || data?.data?.availability || data?.data?.items || [];
   return Array.isArray(slots) ? (slots as SedifexAvailabilitySlot[]) : [];
 }
 
 export function extractServices(payload: unknown): SedifexCatalogItem[] {
-  const data = payload as { publicServices?: unknown; services?: unknown; products?: unknown };
+  const data = payload as { publicServices?: unknown; services?: unknown; products?: unknown; publicProducts?: unknown };
   const publicServices = Array.isArray(data?.publicServices) ? data.publicServices as SedifexCatalogItem[] : [];
   const services = Array.isArray(data?.services) ? data.services as SedifexCatalogItem[] : [];
   const products = Array.isArray(data?.products) ? data.products as SedifexCatalogItem[] : [];
-  return [...publicServices, ...services, ...products.filter((item) => item.itemType?.toLowerCase() === 'service')];
+  const publicProducts = Array.isArray(data?.publicProducts) ? data.publicProducts as SedifexCatalogItem[] : [];
+  return [...publicServices, ...services, ...products, ...publicProducts];
 }
 
 function serviceKeyCandidates(service: SedifexCatalogItem) {
@@ -131,13 +152,18 @@ function readPrice(slot: SedifexAvailabilitySlot, service?: SedifexCatalogItem) 
   return Number.isFinite(servicePrice) && servicePrice > 0 ? servicePrice : undefined;
 }
 
+function startOfTodayIso() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.toISOString();
+}
+
 export async function getUpcomingClasses() {
   try {
-    const fromDate = new Date();
     const toDate = new Date();
     toDate.setDate(toDate.getDate() + 240);
     const [availability, catalog] = await Promise.all([
-      getSedifexAvailability({ from: fromDate.toISOString(), to: toDate.toISOString() }),
+      getSedifexAvailability({ from: startOfTodayIso(), to: toDate.toISOString() }),
       getSedifexIntegrationProducts()
     ]);
     const services = buildServiceMap(catalog);
@@ -153,6 +179,7 @@ export async function getUpcomingClasses() {
         const price = readPrice(slot, service);
         return {
           id: slot.id,
+          slug: buildClassSlug(name, slot.id),
           slotId: slot.id,
           serviceId: slot.serviceId || service?.id || '',
           name,
@@ -164,9 +191,9 @@ export async function getUpcomingClasses() {
           duration: fmtDuration(slot, service),
           schedule: level ? `${fmtSchedule(slot)} • ${level}` : fmtSchedule(slot),
           slots: fmtSlots(slot),
-          category: getCategory(service),
+          category: getCategory(service, slot),
           price,
-          currency: typeof service?.attributes?.currency === 'string' ? service.attributes.currency : 'GHS',
+          currency: (typeof slot.currency === 'string' && slot.currency) || (typeof service?.attributes?.currency === 'string' ? service.attributes.currency : 'GHS'),
           location: slot.location || (typeof slot.attributes?.location === 'string' ? slot.attributes.location : ''),
           registrationMode: slot.registrationMode || (typeof slot.attributes?.registrationMode === 'string' ? slot.attributes.registrationMode : '')
         } satisfies UpcomingClass;
@@ -176,4 +203,9 @@ export async function getUpcomingClasses() {
     console.warn('Falling back to local upcoming classes:', error);
   }
   return upcomingClasses;
+}
+
+export async function getUpcomingClassBySlug(slug: string) {
+  const classes = await getUpcomingClasses();
+  return classes.find((item) => item.slug === slug || item.id === slug || item.slotId === slug) || null;
 }
