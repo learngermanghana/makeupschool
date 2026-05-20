@@ -26,6 +26,8 @@ export type UpcomingClass = {
   registrationMode?: string;
 };
 
+type SlotExtras = SedifexAvailabilitySlot & { category?: string; currency?: string };
+
 export function slugifyClass(value: string) {
   return value
     .toLowerCase()
@@ -103,7 +105,8 @@ function fmtSlots(slot: SedifexAvailabilitySlot) {
 }
 
 function getCategory(service?: SedifexCatalogItem, slot?: SedifexAvailabilitySlot): UpcomingClass['category'] {
-  const value = `${slot?.category || slot?.attributes?.category || service?.category || service?.itemType || slot?.eventKind || ''}`.toLowerCase();
+  const slotExtras = slot as SlotExtras | undefined;
+  const value = `${slotExtras?.category || slot?.attributes?.category || service?.category || service?.itemType || slot?.eventKind || ''}`.toLowerCase();
   if (value.includes('full') || value.includes('program')) return 'Full Programs';
   return 'Short Courses';
 }
@@ -177,6 +180,7 @@ export async function getUpcomingClasses() {
         const level = typeof slot.attributes?.level === 'string' ? slot.attributes.level : '';
         const name = service?.name || slotServiceName(slot) || level || 'Upcoming Class';
         const price = readPrice(slot, service);
+        const slotExtras = slot as SlotExtras;
         return {
           id: slot.id,
           slug: buildClassSlug(name, slot.id),
@@ -193,7 +197,7 @@ export async function getUpcomingClasses() {
           slots: fmtSlots(slot),
           category: getCategory(service, slot),
           price,
-          currency: (typeof slot.currency === 'string' && slot.currency) || (typeof service?.attributes?.currency === 'string' ? service.attributes.currency : 'GHS'),
+          currency: (typeof slotExtras.currency === 'string' && slotExtras.currency) || (typeof service?.attributes?.currency === 'string' ? service.attributes.currency : 'GHS'),
           location: slot.location || (typeof slot.attributes?.location === 'string' ? slot.attributes.location : ''),
           registrationMode: slot.registrationMode || (typeof slot.attributes?.registrationMode === 'string' ? slot.attributes.registrationMode : '')
         } satisfies UpcomingClass;
