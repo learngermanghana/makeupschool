@@ -36,6 +36,10 @@ export function slugifyClass(value: string) {
     .replace(/^-+|-+$/g, '') || 'class';
 }
 
+function normalizeKey(value?: string) {
+  return (value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ');
+}
+
 function buildClassSlug(name: string, id: string) {
   const shortId = id.replace(/[^a-z0-9]/gi, '').slice(-6).toLowerCase();
   return `${slugifyClass(name)}${shortId ? `-${shortId}` : ''}`;
@@ -89,8 +93,11 @@ function fmtDuration(slot: SedifexAvailabilitySlot, service?: SedifexCatalogItem
   if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 'See class details';
   const minutes = Math.round((end - start) / 60000);
   if (minutes < 60) return `${minutes} minutes`;
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? `${hours} hour${hours === 1 ? '' : 's'}` : `${hours.toFixed(1)} hours`;
+  if (minutes <= 8 * 60) {
+    const hours = minutes / 60;
+    return Number.isInteger(hours) ? `${hours} hour${hours === 1 ? '' : 's'}` : `${hours.toFixed(1)} hours`;
+  }
+  return 'See schedule';
 }
 
 function fmtSlots(slot: SedifexAvailabilitySlot) {
@@ -123,12 +130,13 @@ function extractSlots(payload: unknown): SedifexAvailabilitySlot[] {
 }
 
 export function extractServices(payload: unknown): SedifexCatalogItem[] {
-  const data = payload as { publicServices?: unknown; services?: unknown; products?: unknown; publicProducts?: unknown };
+  const data = payload as { publicServices?: unknown; services?: unknown; products?: unknown; publicProducts?: unknown; items?: unknown };
   const publicServices = Array.isArray(data?.publicServices) ? data.publicServices as SedifexCatalogItem[] : [];
   const services = Array.isArray(data?.services) ? data.services as SedifexCatalogItem[] : [];
   const products = Array.isArray(data?.products) ? data.products as SedifexCatalogItem[] : [];
   const publicProducts = Array.isArray(data?.publicProducts) ? data.publicProducts as SedifexCatalogItem[] : [];
-  return [...publicServices, ...services, ...products, ...publicProducts];
+  const items = Array.isArray(data?.items) ? data.items as SedifexCatalogItem[] : [];
+  return [...publicServices, ...services, ...products, ...publicProducts, ...items];
 }
 
 function serviceKeyCandidates(service: SedifexCatalogItem) {
@@ -140,7 +148,11 @@ function serviceKeyCandidates(service: SedifexCatalogItem) {
 
 export function buildServiceMap(catalog: unknown) {
   const services = new Map<string, SedifexCatalogItem>();
-  for (const item of extractServices(catalog)) for (const key of serviceKeyCandidates(item)) services.set(key, item);
+  const items = extractServices(catalog);
+  for (const item of items) {
+    for (const key of serviceKeyCandidates(item)) services.set(key, item);
+    for (const key of serviceKeyCandidates(item)) services.set(normalizeKey(key), item);
+  }
   return services;
 }
 
@@ -148,11 +160,30 @@ function slotServiceName(slot: SedifexAvailabilitySlot) {
   return typeof slot.serviceName === 'string' && slot.serviceName.trim() ? slot.serviceName.trim() : '';
 }
 
+function findServiceForSlot(slot: SedifexAvailabilitySlot, services: Map<string, SedifexCatalogItem>) {
+  const directKeys = [slot.serviceId, slot.sourceItemId, slot.linkedCourseId, slot.serviceName]
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()));
+  for (const key of directKeys) {
+    const direct = services.get(key) || services.get(normalizeKey(key));
+    if (direct) return direct;
+  }
+
+  const slotName = normalizeKey(slotServiceName(slot));
+  if (!slotName) return undefined;
+  for (const service of services.values()) {
+    const serviceName = normalizeKey(service.name);
+    if (serviceName && (serviceName === slotName || serviceName.includes(slotName) || slotName.includes(serviceName))) return service;
+  }
+  return undefined;
+}
+
 function readPrice(slot: SedifexAvailabilitySlot, service?: SedifexCatalogItem) {
   const slotPrice = Number(slot.price ?? slot.attributes?.price ?? slot.attributes?.paymentAmount);
   if (Number.isFinite(slotPrice) && slotPrice > 0) return slotPrice;
   const servicePrice = Number(service?.price);
-  return Number.isFinite(servicePrice) && servicePrice > 0 ? servicePrice : undefined;
+  if (Number.isFinite(servicePrice) && servicePrice > 0) return servicePrice;
+  const serviceMinor = Number(service?.priceMinor);
+  return Number.isFinite(serviceMinor) && serviceMinor > 0 ? serviceMinor / 100 : undefined;
 }
 
 function startOfTodayIso() {
@@ -176,7 +207,7 @@ export async function getUpcomingClasses() {
 
     if (slots.length) {
       return slots.map((slot) => {
-        const service = slot.serviceId ? services.get(slot.serviceId) : undefined;
+        const service = findServiceForSlot(slot, services);
         const level = typeof slot.attributes?.level === 'string' ? slot.attributes.level : '';
         const name = service?.name || slotServiceName(slot) || level || 'Upcoming Class';
         const price = readPrice(slot, service);
@@ -185,7 +216,7 @@ export async function getUpcomingClasses() {
           id: slot.id,
           slug: buildClassSlug(name, slot.id),
           slotId: slot.id,
-          serviceId: slot.serviceId || service?.id || '',
+          serviceId: service?.id || slot.sourceItemId || slot.linkedCourseId || slot.serviceId || '',
           name,
           image: slot.imageUrl || (typeof slot.attributes?.imageUrl === 'string' ? slot.attributes.imageUrl : '') || service?.imageUrl || '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49 (1).jpeg',
           imageAlt: slot.imageAlt || (typeof slot.attributes?.imageAlt === 'string' ? slot.attributes.imageAlt : '') || service?.imageAlt || service?.name || `${name} class image`,
