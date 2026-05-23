@@ -17,6 +17,13 @@ body {
 
 .input {
   @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-charcoal shadow-sm outline-none transition placeholder:text-charcoal/35 focus:border-gold focus:ring-2 focus:ring-gold/20;
+  min-width: 0;
+}
+
+select.input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-shell {
