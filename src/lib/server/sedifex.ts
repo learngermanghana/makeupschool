@@ -20,12 +20,12 @@ function getStoreId() {
 
 function getApiKey() {
   return getEnv(
-    'SEDIFEX_BOOKING_API_KEY',
+    'SEDIFEX_INTEGRATION_API_KEY',
     getEnv(
-      'SEDIFEX_CHECKOUT_API_KEY',
+      'SEDIFEX_PRODUCTS_API_KEY',
       getEnv(
-        'SEDIFEX_INTEGRATION_API_KEY',
-        getEnv('SEDIFEX_INTEGRATION_KEY', getEnv('SEDFIEX_INTEGRATION_KEY', getEnv('SEDFIEX_API_KEY', getEnv('INTEGRATION_KEY'))))
+        'SEDIFEX_BOOKING_API_KEY',
+        getEnv('SEDIFEX_CHECKOUT_API_KEY', getEnv('SEDIFEX_INTEGRATION_KEY', getEnv('SEDFIEX_INTEGRATION_KEY', getEnv('SEDFIEX_API_KEY', getEnv('INTEGRATION_KEY')))))
       )
     )
   );
@@ -88,10 +88,18 @@ export type SedifexCatalogItem = {
   imageUrl?: string;
   imageAlt?: string;
   price?: number;
+  priceMinor?: number;
   itemType?: string;
+  type?: string;
+  listingType?: string;
+  serviceKind?: string;
+  enrollmentMode?: string;
   category?: string;
   duration?: string;
   schedule?: string;
+  currency?: string;
+  sourceProductId?: string;
+  sourceId?: string;
   attributes?: Record<string, unknown>;
   updatedAt?: string;
 };
@@ -101,6 +109,9 @@ export type SedifexAvailabilitySlot = {
   storeId?: string;
   serviceId?: string;
   serviceName?: string;
+  sourceItemId?: string;
+  sourceItemType?: string;
+  linkedCourseId?: string;
   startAt?: string;
   endAt?: string;
   timezone?: string;
@@ -129,10 +140,25 @@ export type SedifexBlogPost = {
   publishedAt?: string;
 };
 
+type CatalogPayload = { products?: unknown[]; publicProducts?: unknown[]; publicServices?: unknown[]; services?: unknown[]; items?: unknown[] } | null;
+
+function catalogHasItems(payload: unknown) {
+  const data = payload as CatalogPayload;
+  return Boolean(data && [data.products, data.publicProducts, data.publicServices, data.services, data.items].some((items) => Array.isArray(items) && items.length > 0));
+}
+
 export async function getSedifexIntegrationProducts() {
   const storeId = getStoreId();
   if (!storeId) return null;
-  return sedifexFetch(`/v1IntegrationProducts?storeId=${encodeURIComponent(storeId)}`, true);
+
+  try {
+    const authenticated = await sedifexFetch(`/v1IntegrationProducts?storeId=${encodeURIComponent(storeId)}`, true);
+    if (catalogHasItems(authenticated)) return authenticated;
+  } catch (error) {
+    console.warn('Falling back to public Quick Pay catalog:', error);
+  }
+
+  return sedifexFetch(`/publicQuickPayCatalog?storeId=${encodeURIComponent(storeId)}`, false, getApiBaseUrl(), 'no-store');
 }
 
 export async function getSedifexGallery() {
