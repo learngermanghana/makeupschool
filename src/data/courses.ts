@@ -32,37 +32,62 @@ function readCurrency(service: SedifexCatalogItem) {
 function readPrice(service: SedifexCatalogItem) {
   const record = service as SedifexCatalogItem & {
     price?: unknown;
+    priceMinor?: unknown;
     sellingPrice?: unknown;
     salePrice?: unknown;
     amount?: unknown;
     fee?: unknown;
     registrationFee?: unknown;
   };
-  const value = Number(record.registrationFee ?? record.price ?? record.sellingPrice ?? record.salePrice ?? record.amount ?? record.fee);
-  return Number.isFinite(value) && value > 0 ? value : undefined;
+  const major = Number(record.registrationFee ?? record.price ?? record.sellingPrice ?? record.salePrice ?? record.amount ?? record.fee);
+  if (Number.isFinite(major) && major > 0) return major;
+  const minor = Number(record.priceMinor);
+  return Number.isFinite(minor) && minor > 0 ? minor / 100 : undefined;
+}
+
+function extractCatalogItems(catalog: unknown): SedifexCatalogItem[] {
+  const data = catalog as {
+    products?: unknown;
+    publicProducts?: unknown;
+    publicServices?: unknown;
+    services?: unknown;
+    items?: unknown;
+  } | null;
+
+  return [data?.products, data?.publicServices, data?.services, data?.publicProducts, data?.items]
+    .flatMap((value) => Array.isArray(value) ? value as SedifexCatalogItem[] : []);
+}
+
+function isCourseLike(item: SedifexCatalogItem) {
+  const record = item as SedifexCatalogItem & { listingType?: unknown; serviceKind?: unknown; enrollmentMode?: unknown; type?: unknown };
+  const itemType = `${item.itemType || ''}`.toLowerCase();
+  const type = `${record.type || ''}`.toLowerCase();
+  const listingType = `${record.listingType || ''}`.toLowerCase();
+  const serviceKind = `${record.serviceKind || ''}`.toLowerCase();
+  const enrollmentMode = `${record.enrollmentMode || ''}`.toLowerCase();
+  const category = `${item.category || ''}`.toLowerCase();
+
+  return (
+    itemType === 'service' ||
+    itemType === 'course' ||
+    type === 'service' ||
+    type === 'course' ||
+    listingType === 'course' ||
+    listingType === 'service' ||
+    serviceKind.includes('course') ||
+    serviceKind.includes('training') ||
+    enrollmentMode.includes('open') ||
+    enrollmentMode.includes('scheduled') ||
+    category.includes('course') ||
+    category.includes('training') ||
+    category.includes('education')
+  );
 }
 
 export async function getCourses() {
   try {
     const catalog = await getSedifexIntegrationProducts();
-    const catalogItems = (catalog?.products || []) as SedifexCatalogItem[];
-    const services = catalogItems.filter((item) => {
-      const record = item as SedifexCatalogItem & { listingType?: unknown; serviceKind?: unknown; enrollmentMode?: unknown };
-      const itemType = `${item.itemType || ''}`.toLowerCase();
-      const listingType = `${record.listingType || ''}`.toLowerCase();
-      const serviceKind = `${record.serviceKind || ''}`.toLowerCase();
-      const enrollmentMode = `${record.enrollmentMode || ''}`.toLowerCase();
-
-      return (
-        itemType === 'service' ||
-        itemType === 'course' ||
-        listingType === 'course' ||
-        serviceKind.includes('course') ||
-        enrollmentMode.includes('open') ||
-        enrollmentMode.includes('scheduled')
-      );
-    });
-    const normalizedServices = services.length ? services : ((catalog?.publicServices || []) as SedifexCatalogItem[]);
+    const normalizedServices = extractCatalogItems(catalog).filter(isCourseLike);
     if (normalizedServices.length) {
       return normalizedServices.map((service) => ({
         slug: toSlug(service.name),
