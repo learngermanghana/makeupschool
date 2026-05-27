@@ -14,6 +14,10 @@ type FormState = {
   course: string;
   startMonth: string;
   classSlotId: string;
+  guardianName: string;
+  guardianPhone: string;
+  guardianEmail: string;
+  guardianRelationship: string;
   message: string;
 };
 
@@ -25,8 +29,15 @@ const initialState: FormState = {
   course: '',
   startMonth: '',
   classSlotId: '',
+  guardianName: '',
+  guardianPhone: '',
+  guardianEmail: '',
+  guardianRelationship: '',
   message: ''
 };
+
+const UNSCHEDULED_CLASS_VALUE = '__no_upcoming_class_yet__';
+const UNSCHEDULED_START_LABEL = 'No upcoming class selected / admissions will schedule';
 
 type Props = {
   courses: Course[];
@@ -50,7 +61,7 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const helperText = useMemo(
-    () => 'Submitting this form creates your Sedifex student registration and takes you to secure payment. Upcoming class dates come from Sedifex availability when available.',
+    () => 'Submitting this form creates your Sedifex student registration and takes you to secure payment. If no upcoming class date is listed yet, you can still pay and admissions will assign your class schedule.',
     []
   );
 
@@ -97,9 +108,11 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
   }, [form.course, form.courseId, selectedCourse, upcomingClasses]);
 
   const selectedClass = useMemo(() => {
-    if (!form.classSlotId) return null;
+    if (!form.classSlotId || form.classSlotId === UNSCHEDULED_CLASS_VALUE) return null;
     return upcomingClassesForCourse.find((item) => item.slotId === form.classSlotId || item.id === form.classSlotId) || null;
   }, [form.classSlotId, upcomingClassesForCourse]);
+
+  const noUpcomingClassForSelectedCourse = Boolean(form.course && upcomingClassesForCourse.length === 0);
 
   useEffect(() => {
     const status = searchParams.get('status');
@@ -117,8 +130,8 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.fullName || !form.phone || !form.email || !form.course || !form.startMonth) {
-      setError('Please complete all required fields before submitting.');
+    if (!form.fullName || !form.phone || !form.email || !form.course) {
+      setError('Please complete your name, phone, email, and selected course before submitting.');
       setSuccess('');
       return;
     }
@@ -126,17 +139,20 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
     setError('');
     setSuccess('');
     try {
+      const preferredStart = selectedClass?.startDate || form.startMonth || UNSCHEDULED_START_LABEL;
       const response = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          classSlotId: selectedClass?.slotId || selectedClass?.id || form.classSlotId,
+          startMonth: preferredStart,
+          classSlotId: selectedClass?.slotId || selectedClass?.id || (noUpcomingClassForSelectedCourse ? '' : form.classSlotId),
           classStartAt: selectedClass?.startAt,
           classEndAt: selectedClass?.endAt,
-          classSchedule: selectedClass?.schedule,
+          classSchedule: selectedClass?.schedule || (noUpcomingClassForSelectedCourse ? 'No upcoming class listed yet' : undefined),
           classLocation: selectedClass?.location,
-          classSeats: selectedClass?.slots
+          classSeats: selectedClass?.slots,
+          noUpcomingClassSelected: noUpcomingClassForSelectedCourse
         })
       });
       if (!response.ok) {
@@ -153,7 +169,7 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
       window.location.assign(checkoutUrl);
     } catch (submissionError) {
       console.error(submissionError);
-      setError('Could not start payment right now. Please try again in a moment or contact admissions.');
+      setError(submissionError instanceof Error ? submissionError.message : 'Could not start payment right now. Please try again in a moment or contact admissions.');
     } finally {
       setIsSubmitting(false);
     }
@@ -173,15 +189,32 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
           </select>
           {selectedCourse ? <p className="text-xs leading-5 text-charcoal/60">Selected course fee: <span className="font-semibold text-charcoal">{formatMoney(selectedCourse.price, selectedCourse.currency)}</span></p> : null}
         </Field>
-        <Field label="Preferred upcoming class" required>
-          <select value={form.classSlotId} onChange={(event) => { const selected = upcomingClassesForCourse.find((item) => item.slotId === event.target.value || item.id === event.target.value); setForm({ ...form, classSlotId: event.target.value, startMonth: selected?.startDate || '' }); }} className="input" disabled={!form.course || upcomingClassesForCourse.length === 0}>
-            <option value="">{!form.course ? 'Select a course first' : upcomingClassesForCourse.length === 0 ? 'No upcoming classes listed' : 'Select upcoming class'}</option>
+        <Field label="Preferred upcoming class">
+          <select value={noUpcomingClassForSelectedCourse ? UNSCHEDULED_CLASS_VALUE : form.classSlotId} onChange={(event) => { const selected = upcomingClassesForCourse.find((item) => item.slotId === event.target.value || item.id === event.target.value); setForm({ ...form, classSlotId: event.target.value, startMonth: selected?.startDate || '' }); }} className="input" disabled={!form.course || upcomingClassesForCourse.length === 0}>
+            <option value="">{!form.course ? 'Select a course first' : upcomingClassesForCourse.length === 0 ? 'No upcoming classes listed yet' : 'Select upcoming class'}</option>
+            {noUpcomingClassForSelectedCourse ? <option value={UNSCHEDULED_CLASS_VALUE}>Pay now — admissions will schedule your class</option> : null}
             {upcomingClassesForCourse.map((item) => <option key={item.slotId || item.id} value={item.slotId || item.id}>{item.startDate} — {item.schedule} — {item.slots}</option>)}
           </select>
           {selectedClass ? <p className="text-xs leading-5 text-charcoal/60">This registration will be linked to Sedifex upcoming class slot <span className="font-semibold text-charcoal">{selectedClass.slotId || selectedClass.id}</span>.</p> : null}
+          {noUpcomingClassForSelectedCourse ? <p className="text-xs leading-5 text-charcoal/60">No upcoming class is listed yet for this course. You can still pay now; admissions will contact you with the class date and schedule.</p> : null}
         </Field>
+      </div>
+
+      <div className="mt-8 rounded-3xl border border-black/5 bg-cream/60 p-5">
+        <h3 className="font-display text-2xl text-charcoal">Parent / guardian details</h3>
+        <p className="mt-2 text-sm leading-6 text-charcoal/65">Add this if a parent, sponsor, or guardian should be contacted about the student registration.</p>
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <Field label="Guardian name"><input value={form.guardianName} onChange={(event) => setForm({ ...form, guardianName: event.target.value })} className="input" /></Field>
+          <Field label="Guardian phone"><input value={form.guardianPhone} onChange={(event) => setForm({ ...form, guardianPhone: event.target.value })} className="input" /></Field>
+          <Field label="Guardian email"><input type="email" value={form.guardianEmail} onChange={(event) => setForm({ ...form, guardianEmail: event.target.value })} className="input" /></Field>
+          <Field label="Relationship"><input value={form.guardianRelationship} onChange={(event) => setForm({ ...form, guardianRelationship: event.target.value })} placeholder="e.g. Mother, Father, Sponsor" className="input" /></Field>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-5">
         <Field label="Message"><input value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} placeholder="Tell us about your goals or preferred schedule." className="input" /></Field>
       </div>
+
       {error ? <p className="mt-4 text-sm font-medium text-rose-700">{error}</p> : null}
       {success ? <p className="mt-4 text-sm font-medium text-emerald-700">{success}</p> : null}
       <button type="submit" disabled={isSubmitting} className="mt-8 inline-flex rounded-full bg-charcoal px-6 py-3 text-sm font-medium text-white transition hover:bg-charcoal/90 disabled:cursor-not-allowed disabled:opacity-70">
