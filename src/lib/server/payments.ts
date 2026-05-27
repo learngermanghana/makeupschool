@@ -5,6 +5,17 @@ export type RegistrationMetadata = {
   courseId: string;
   course: string;
   startMonth: string;
+  classSlotId?: string;
+  classStartAt?: string;
+  classEndAt?: string;
+  classSchedule?: string;
+  classLocation?: string;
+  classSeats?: string;
+  noUpcomingClassSelected?: boolean;
+  guardianName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  guardianRelationship?: string;
   message: string;
 };
 
@@ -280,6 +291,29 @@ function readCheckoutReference(payload: CheckoutCreateResponse | null) {
   return typeof value === 'string' ? value : '';
 }
 
+function buildGuardianData(metadata: RegistrationMetadata) {
+  const guardian = {
+    name: text(metadata.guardianName, 220),
+    phone: text(metadata.guardianPhone, 80),
+    email: text(metadata.guardianEmail, 220),
+    relationship: text(metadata.guardianRelationship, 120)
+  };
+  return Object.values(guardian).some(Boolean) ? guardian : null;
+}
+
+function buildClassData(metadata: RegistrationMetadata) {
+  return {
+    classSlotId: text(metadata.classSlotId, 220) || null,
+    classStartAt: text(metadata.classStartAt, 120) || null,
+    classEndAt: text(metadata.classEndAt, 120) || null,
+    classSchedule: text(metadata.classSchedule, 220) || null,
+    classLocation: text(metadata.classLocation, 220) || null,
+    classSeats: text(metadata.classSeats, 120) || null,
+    noUpcomingClassSelected: Boolean(metadata.noUpcomingClassSelected),
+    preferredClassTime: metadata.startMonth || (metadata.noUpcomingClassSelected ? 'No upcoming class selected / admissions will schedule' : 'Admissions will confirm schedule')
+  };
+}
+
 async function createFallbackCheckout(input: {
   config: ReturnType<typeof getSedifexRegistrationConfig>;
   metadata: RegistrationMetadata;
@@ -291,6 +325,8 @@ async function createFallbackCheckout(input: {
   const apiKey = getApiKey();
   if (!apiKey) throw new PaymentError('Missing Sedifex checkout API key.', 503, 'sedifex_api_key_missing');
 
+  const guardian = buildGuardianData(input.metadata);
+  const classData = buildClassData(input.metadata);
   const payload = {
     storeId: input.config.storeId,
     merchantId: input.config.storeId,
@@ -321,6 +357,9 @@ async function createFallbackCheckout(input: {
       submissionId: input.submissionId,
       studentName: input.metadata.fullName,
       course: input.coursePayment.courseName,
+      classSlotId: classData.classSlotId,
+      noUpcomingClassSelected: classData.noUpcomingClassSelected,
+      guardian,
       source: 'makeupschool_registration_page'
     }
   };
@@ -344,6 +383,8 @@ async function createFallbackCheckout(input: {
 export async function initializeRegistrationPayment(metadata: RegistrationMetadata, callbackUrl: string) {
   const config = getSedifexRegistrationConfig();
   const coursePayment = await getSelectedCoursePrice(metadata, config);
+  const guardian = buildGuardianData(metadata);
+  const classData = buildClassData(metadata);
   const response = await fetch(config.endpoint, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -352,7 +393,26 @@ export async function initializeRegistrationPayment(metadata: RegistrationMetada
       pageId: 'makeupschool-student-registration',
       source: 'makeupschool_registration_page',
       customer: { name: metadata.fullName, email: metadata.email, phone: metadata.phone },
-      data: { course: coursePayment.courseName, serviceId: coursePayment.courseId || metadata.courseId || null, preferredClassTime: metadata.startMonth, branch: 'Tema', notes: metadata.message || null },
+      data: {
+        course: coursePayment.courseName,
+        serviceId: coursePayment.courseId || metadata.courseId || null,
+        preferredClassTime: classData.preferredClassTime,
+        branch: 'Tema',
+        notes: metadata.message || null,
+        guardian,
+        guardianName: guardian?.name || null,
+        guardianPhone: guardian?.phone || null,
+        guardianEmail: guardian?.email || null,
+        guardianRelationship: guardian?.relationship || null,
+        classSlotId: classData.classSlotId,
+        classStartAt: classData.classStartAt,
+        classEndAt: classData.classEndAt,
+        classSchedule: classData.classSchedule,
+        classLocation: classData.classLocation,
+        classSeats: classData.classSeats,
+        noUpcomingClassSelected: classData.noUpcomingClassSelected,
+        schedulingStatus: classData.noUpcomingClassSelected ? 'needs_admissions_scheduling' : 'student_selected_upcoming_class'
+      },
       payment: { mode: 'online', amount: coursePayment.amount, currency: coursePayment.currency, callbackUrl }
     })
   });
