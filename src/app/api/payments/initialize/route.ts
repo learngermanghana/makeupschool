@@ -5,6 +5,7 @@ type PaymentInitPayload = {
   fullName?: string;
   phone?: string;
   email?: string;
+  educationLevel?: string;
   courseId?: string;
   course?: string;
   startMonth?: string;
@@ -23,11 +24,12 @@ type PaymentInitPayload = {
 };
 
 function validate(payload: PaymentInitPayload) {
-  return Boolean(payload.fullName && payload.phone && payload.email && payload.course);
+  return Boolean(payload.fullName && payload.phone && payload.email && payload.educationLevel && payload.course);
 }
 
 function buildRegistrationNotes(payload: PaymentInitPayload) {
   const lines = [payload.message || ''];
+  if (payload.educationLevel) lines.push(`Education level: ${payload.educationLevel}`);
   if (payload.noUpcomingClassSelected) lines.push('No upcoming class was listed for the selected course. Admissions should assign the student to the next available class.');
   if (payload.classSlotId) lines.push(`Selected upcoming class slot: ${payload.classSlotId}`);
   if (payload.classSchedule) lines.push(`Class schedule: ${payload.classSchedule}`);
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
         fullName: payload.fullName!,
         phone: payload.phone!,
         email: payload.email!,
+        educationLevel: payload.educationLevel || '',
         courseId: payload.courseId || '',
         course: payload.course!,
         startMonth: preferredStart,
