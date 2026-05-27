@@ -2,6 +2,7 @@ export type RegistrationMetadata = {
   fullName: string;
   phone: string;
   email: string;
+  educationLevel?: string;
   courseId: string;
   course: string;
   startMonth: string;
@@ -327,6 +328,7 @@ async function createFallbackCheckout(input: {
 
   const guardian = buildGuardianData(input.metadata);
   const classData = buildClassData(input.metadata);
+  const educationLevel = text(input.metadata.educationLevel, 160);
   const payload = {
     storeId: input.config.storeId,
     merchantId: input.config.storeId,
@@ -356,6 +358,7 @@ async function createFallbackCheckout(input: {
     metadata: {
       submissionId: input.submissionId,
       studentName: input.metadata.fullName,
+      educationLevel,
       course: input.coursePayment.courseName,
       classSlotId: classData.classSlotId,
       noUpcomingClassSelected: classData.noUpcomingClassSelected,
@@ -385,6 +388,7 @@ export async function initializeRegistrationPayment(metadata: RegistrationMetada
   const coursePayment = await getSelectedCoursePrice(metadata, config);
   const guardian = buildGuardianData(metadata);
   const classData = buildClassData(metadata);
+  const educationLevel = text(metadata.educationLevel, 160);
   const response = await fetch(config.endpoint, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -396,6 +400,8 @@ export async function initializeRegistrationPayment(metadata: RegistrationMetada
       data: {
         course: coursePayment.courseName,
         serviceId: coursePayment.courseId || metadata.courseId || null,
+        educationLevel: educationLevel || null,
+        studentEducationLevel: educationLevel || null,
         preferredClassTime: classData.preferredClassTime,
         branch: 'Tema',
         notes: metadata.message || null,
