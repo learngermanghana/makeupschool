@@ -10,6 +10,7 @@ type FormState = {
   fullName: string;
   phone: string;
   email: string;
+  educationLevel: string;
   courseId: string;
   course: string;
   startMonth: string;
@@ -25,6 +26,7 @@ const initialState: FormState = {
   fullName: '',
   phone: '',
   email: '',
+  educationLevel: '',
   courseId: '',
   course: '',
   startMonth: '',
@@ -38,6 +40,17 @@ const initialState: FormState = {
 
 const UNSCHEDULED_CLASS_VALUE = '__no_upcoming_class_yet__';
 const UNSCHEDULED_START_LABEL = 'No upcoming class selected / admissions will schedule';
+
+const EDUCATION_LEVEL_OPTIONS = [
+  'No formal education',
+  'JHS / Junior High School',
+  'SHS / Senior High School',
+  'Vocational / Technical',
+  'Diploma',
+  'Tertiary / University',
+  'Graduate',
+  'Other'
+];
 
 type Props = {
   courses: Course[];
@@ -130,8 +143,8 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.fullName || !form.phone || !form.email || !form.course) {
-      setError('Please complete your name, phone, email, and selected course before submitting.');
+    if (!form.fullName || !form.phone || !form.email || !form.educationLevel || !form.course) {
+      setError('Please complete your name, phone, email, education level, and selected course before submitting.');
       setSuccess('');
       return;
     }
@@ -182,6 +195,12 @@ export function RegisterForm({ courses, upcomingClasses }: Props) {
         <Field label="Full name" required><input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} className="input" /></Field>
         <Field label="Phone number" required><input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="input" /></Field>
         <Field label="Email address" required><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="input" /></Field>
+        <Field label="Education level" required>
+          <select value={form.educationLevel} onChange={(event) => setForm({ ...form, educationLevel: event.target.value })} className="input">
+            <option value="">Select education level</option>
+            {EDUCATION_LEVEL_OPTIONS.map((level) => <option key={level} value={level}>{level}</option>)}
+          </select>
+        </Field>
         <Field label="Course interested in" required>
           <select value={form.courseId} onChange={(event) => { const selected = courseOptions.find((course) => (course.serviceId || course.slug) === event.target.value); setForm({ ...form, courseId: event.target.value, course: selected?.name || '', startMonth: '', classSlotId: '' }); }} className="input">
             <option value="">Select a course</option>
