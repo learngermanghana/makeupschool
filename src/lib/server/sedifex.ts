@@ -1,6 +1,7 @@
 const CONTRACT_VERSION = '2026-04-13';
 const DEFAULT_API_BASE_URL = 'https://us-central1-sedifex-web.cloudfunctions.net';
 const DEFAULT_SITE_BASE_URL = 'https://www.sedifex.com';
+const CONTENT_REVALIDATE_SECONDS = 900;
 
 function getEnv(name: string, fallback?: string) {
   return process.env[name] || fallback || '';
@@ -49,17 +50,16 @@ function buildHeaders(authenticated = false) {
   return headers;
 }
 
-async function sedifexFetch(path: string, authenticated = false, baseUrl = getApiBaseUrl(), cacheMode: 'revalidate' | 'no-store' = 'revalidate') {
+async function sedifexFetch(path: string, authenticated = false, baseUrl = getApiBaseUrl()) {
   const url = `${baseUrl}${path}`;
-  return sedifexFetchUrl(url, authenticated, cacheMode, path);
+  return sedifexFetchUrl(url, authenticated, path);
 }
 
-async function sedifexFetchUrl(url: string, authenticated = false, cacheMode: 'revalidate' | 'no-store' = 'revalidate', label = url) {
+async function sedifexFetchUrl(url: string, authenticated = false, label = url) {
   const headers = buildHeaders(authenticated);
-  const cacheConfig = cacheMode === 'no-store' ? { cache: 'no-store' as const } : { next: { revalidate: 60 } };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await fetch(url, { headers, ...cacheConfig });
+    const response = await fetch(url, { headers, next: { revalidate: CONTENT_REVALIDATE_SECONDS } });
 
     if (response.ok) {
       return response.json();
@@ -158,7 +158,7 @@ export async function getSedifexIntegrationProducts() {
     console.warn('Falling back to public Quick Pay catalog:', error);
   }
 
-  return sedifexFetch(`/publicQuickPayCatalog?storeId=${encodeURIComponent(storeId)}`, false, getApiBaseUrl(), 'no-store');
+  return sedifexFetch(`/publicQuickPayCatalog?storeId=${encodeURIComponent(storeId)}`);
 }
 
 export async function getSedifexGallery() {
@@ -180,10 +180,10 @@ export async function getSedifexAvailability(filters: { serviceId?: string; from
   const directAvailabilityUrl = getEnv('SEDIFEX_AVAILABILITY_URL', getEnv('SEDIFEX_INTEGRATION_AVAILABILITY_URL'));
   if (directAvailabilityUrl) {
     const url = `${directAvailabilityUrl.replace(/\/$/, '')}?${params.toString()}`;
-    return sedifexFetchUrl(url, true, 'no-store', 'v1IntegrationAvailability');
+    return sedifexFetchUrl(url, true, 'v1IntegrationAvailability');
   }
 
-  return sedifexFetch(`/v1IntegrationAvailability?${params.toString()}`, true, getApiBaseUrl(), 'no-store');
+  return sedifexFetch(`/v1IntegrationAvailability?${params.toString()}`, true);
 }
 
 export async function getSedifexPublicBlog(slug?: string) {

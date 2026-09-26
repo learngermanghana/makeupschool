@@ -192,12 +192,17 @@ function startOfTodayIso() {
   return today.toISOString();
 }
 
+function endOfAvailabilityWindowIso() {
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  end.setDate(end.getDate() + 240);
+  return end.toISOString();
+}
+
 export async function getUpcomingClasses() {
   try {
-    const toDate = new Date();
-    toDate.setDate(toDate.getDate() + 240);
     const [availability, catalog] = await Promise.all([
-      getSedifexAvailability({ from: startOfTodayIso(), to: toDate.toISOString() }),
+      getSedifexAvailability({ from: startOfTodayIso(), to: endOfAvailabilityWindowIso() }),
       getSedifexIntegrationProducts()
     ]);
     const services = buildServiceMap(catalog);
