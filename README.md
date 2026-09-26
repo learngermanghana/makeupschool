@@ -12,6 +12,13 @@ A premium, conversion-focused beauty school website built with Next.js App Route
 - Registration form pulls the selected course price from Sedifex integration products/courses, creates a Sedifex student registration, and redirects the student/parent to secure Paystack checkout.
 - Sitemap and robots support for better search indexing readiness.
 
+## Vercel usage controls
+
+- Preview deployments are disabled for non-`main` branches in `vercel.json`, so routine branch pushes do not consume build minutes.
+- Marketing images are served directly instead of using Vercel Image Optimization transformations. Files under `/uploads` and `/images` receive a one-year immutable browser/CDN cache header; rename a file when replacing its contents.
+- Read-only Sedifex catalog, availability, gallery, and blog requests are cached for 15 minutes. Availability date boundaries are normalized to the start of the day so all visitors share the same cache key.
+- Payment initialization, registration writes, and order checks remain uncached because they are user-specific operations.
+
 ## Project structure
 
 ```text
