@@ -37,10 +37,7 @@ export function CourseCard({ course }: { course: Course }) {
         ) : null}
         <div className="mt-7 flex flex-wrap gap-3">
           <ButtonLink href={`/courses/${course.slug}`} variant="primary">View details</ButtonLink>
-          <ButtonLink href="/register" variant="secondary">Apply now</ButtonLink>
-          <ButtonLink href={registerWhatsAppLink(course.name)} variant="secondary" external>
-            Ask on WhatsApp
-          </ButtonLink>
+          <ButtonLink href={registerWhatsAppLink(course.name)} variant="secondary" external>Apply on WhatsApp</ButtonLink>
         </div>
       </div>
     </article>

@@ -55,7 +55,12 @@ async function sedifexFetch(path: string, authenticated = false, baseUrl = getAp
   return sedifexFetchUrl(url, authenticated, path);
 }
 
+// Temporary WhatsApp-only admissions mode: prevent read-only API traffic to Sedifex.
+// All content getters fall back to local data; checkout endpoints remain blocked in Vercel.
+const SEDIFEX_PUBLIC_READS_SUSPENDED = true;
+
 async function sedifexFetchUrl(url: string, authenticated = false, label = url) {
+  if (SEDIFEX_PUBLIC_READS_SUSPENDED) return null;
   const headers = buildHeaders(authenticated);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {

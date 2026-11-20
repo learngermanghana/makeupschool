@@ -17,7 +17,11 @@ export type Course = {
 
 export const courses: Course[] = [
   { slug: 'beauty-therapy', name: 'Beauty Therapy', duration: '6 months', summary: 'Master spa-ready beauty services, advanced skin care, and polished make-up artistry.', category: 'Full Program', image: '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49.jpeg', imageAlt: 'Beauty therapy practical session' },
-  { slug: 'hairdressing', name: 'Hairdressing', duration: '9 months', summary: 'Build salon confidence in styling, braiding, extensions, treatments, and foundational theory.', category: 'Full Program', image: '/uploads/homepage/hairdressing.jpeg', imageAlt: 'Hairdressing braids practice' }
+  { slug: 'hairdressing', name: 'Hairdressing', duration: '9 months', summary: 'Build salon confidence in styling, braiding, extensions, treatments, and foundational theory.', category: 'Full Program', image: '/uploads/homepage/hairdressing.jpeg', imageAlt: 'Hairdressing braids practice' },
+  { slug: 'massage-therapy', name: 'Massage Therapy', duration: 'Ask admissions', summary: 'Explore practical massage and wellness training.', category: 'Short Course', image: '/uploads/homepage/massage 1.jpeg', imageAlt: 'Massage therapy training' },
+  { slug: 'millinery', name: 'Millinery', duration: 'Ask admissions', summary: 'Learn practical hat and accessory making skills.', category: 'Short Course', image: '/uploads/courses/Millinery.jpeg', imageAlt: 'Millinery training' },
+  { slug: 'beading', name: 'Beading', duration: 'Ask admissions', summary: 'Explore creative beading techniques and handmade accessories.', category: 'Short Course', image: '/uploads/courses/Beading7.jpeg', imageAlt: 'Beading training' },
+  { slug: 'personal-grooming', name: 'Personal Grooming', duration: 'Ask admissions', summary: 'Develop professional grooming and personal presentation skills.', category: 'Short Course', image: '/uploads/courses/Personal Grooming .jpeg', imageAlt: 'Personal grooming training' }
 ];
 
 function toSlug(name: string) {

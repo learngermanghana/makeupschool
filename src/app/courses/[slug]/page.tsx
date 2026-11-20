@@ -41,10 +41,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           ))}
         </div>
         <div className="flex gap-3">
-          <ButtonLink href="/register" variant="primary">Apply now</ButtonLink>
-          <ButtonLink href={registerWhatsAppLink(course.name)} variant="secondary" external>
-            Ask on WhatsApp
-          </ButtonLink>
+          <ButtonLink href={registerWhatsAppLink(course.name)} variant="primary" external>Apply on WhatsApp</ButtonLink>
+          <ButtonLink href="/courses" variant="secondary">Back to courses</ButtonLink>
         </div>
       </div>
     </article>

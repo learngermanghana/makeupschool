@@ -15,7 +15,7 @@ export default async function UpcomingClassesPage() {
       <SectionHeading
         eyebrow="Upcoming classes"
         title="Reserve your space in an upcoming cohort."
-        description="Review sample class schedules, limited-slot availability, and start dates for full programs and short courses."
+        description="Confirm the next available course dates, schedules and places with our admissions team on WhatsApp."
       />
       <div className="mt-10">
         <UpcomingClassesSection classes={classes} />

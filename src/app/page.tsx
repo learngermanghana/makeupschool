@@ -12,7 +12,7 @@ import { courses } from '@/data/courses';
 import { homepageImages } from '@/data/media-library';
 import { testimonials } from '@/data/testimonials';
 import { siteConfig } from '@/data/site';
-import { createWhatsAppLink } from '@/lib/whatsapp';
+import { registerWhatsAppLink } from '@/lib/whatsapp';
 import { getGalleryItems } from '@/data/gallery';
 
 type StudentWorkImage = {
@@ -57,10 +57,8 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <ButtonLink href="/register">Register now</ButtonLink>
-              <ButtonLink href={createWhatsAppLink('Hello Make Up & More, I want to register for a course.')} variant="secondary" external>
-                Enquire on WhatsApp
-              </ButtonLink>
+              <ButtonLink href={registerWhatsAppLink()} external>Register on WhatsApp</ButtonLink>
+              <ButtonLink href="/courses" variant="secondary">Explore courses</ButtonLink>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
@@ -283,7 +281,7 @@ export default async function HomePage() {
               <p className="mt-4 text-base leading-8 text-white/70">Speak with admissions, reserve a slot, or submit your registration details today. We are ready to guide you toward the right course path.</p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <ButtonLink href="/register" className="border border-white/15 bg-white/10 text-white hover:bg-white/20">Register now</ButtonLink>
+              <ButtonLink href={registerWhatsAppLink()} external className="border border-white/15 bg-white/10 text-white hover:bg-white/20">Register on WhatsApp</ButtonLink>
               <ButtonLink href="/contact" variant="ghost" className="border border-white/15 text-white hover:bg-white/10">Contact us</ButtonLink>
             </div>
           </div>

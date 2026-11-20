@@ -11,14 +11,6 @@ type PageProps = {
 
 type UpcomingClassItem = NonNullable<Awaited<ReturnType<typeof getUpcomingClassBySlug>>>;
 
-function registerHref(item: UpcomingClassItem) {
-  const params = new URLSearchParams();
-  if (item.serviceId) params.set('courseId', item.serviceId);
-  params.set('course', item.name);
-  if (item.slotId) params.set('classSlotId', item.slotId);
-  return `/register?${params.toString()}`;
-}
-
 export async function generateStaticParams() {
   const classes = await getUpcomingClasses();
   return classes.map((item) => ({ slug: item.slug }));
@@ -63,7 +55,7 @@ export default async function UpcomingClassDetailPage({ params }: PageProps) {
           </div>
           <h1 className="mt-6 text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">{item.name}</h1>
           <p className="mt-4 text-base leading-8 text-charcoal/70">
-            Review the class details below, register online, or contact admissions on WhatsApp for enquiries before joining this class.
+            Review the class information below and contact admissions on WhatsApp to confirm the next date, fees and availability before joining.
           </p>
 
           <dl className="mt-8 grid gap-4 text-sm text-charcoal/75">
@@ -94,8 +86,7 @@ export default async function UpcomingClassDetailPage({ params }: PageProps) {
           </dl>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href={registerHref(item)}>Register now</ButtonLink>
-            <ButtonLink href={reserveClassWhatsAppLink(item.name)} variant="secondary" external>WhatsApp enquiries</ButtonLink>
+            <ButtonLink href={reserveClassWhatsAppLink(item.name)} external>Register on WhatsApp</ButtonLink>
             <ButtonLink href="/upcoming-classes" variant="ghost">Back to classes</ButtonLink>
           </div>
         </section>
