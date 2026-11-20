@@ -26,6 +26,8 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
+              target={item.href.startsWith('https://') ? '_blank' : undefined}
+              rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined}
               className={cn(
                 'rounded-full px-4 py-2 text-sm transition hover:bg-nude hover:text-charcoal',
                 pathname === item.href ? 'bg-nude text-charcoal' : 'text-charcoal/70'
@@ -71,6 +73,8 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
+              target={item.href.startsWith('https://') ? '_blank' : undefined}
+              rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined}
               onClick={closeMenu}
               className={cn(
                 'rounded-2xl px-4 py-3 text-sm transition',

@@ -11,8 +11,8 @@ export type Product = {
 };
 
 export const products: Product[] = [
-  { slug: 'radiance-facial-kit', name: 'Radiance Facial Kit', image: '/uploads/products/radiance-facial-kit.svg', description: 'A classroom favourite skincare set for cleansing, exfoliating, and finishing facials.', price: 'GH₵ 240' },
-  { slug: 'pro-brush-collection', name: 'Pro Brush Collection', image: '/uploads/products/pro-brush-collection.svg', description: 'Premium multi-use brushes for flawless beauty therapy and make-up application.', price: 'GH₵ 180' }
+  { slug: 'radiance-facial-kit', name: 'Radiance Facial Kit', image: '/uploads/products/radiance-facial-kit.svg', description: 'A classroom favourite skincare set for cleansing, exfoliating, and finishing facials.', price: 'Price on request' },
+  { slug: 'pro-brush-collection', name: 'Pro Brush Collection', image: '/uploads/products/pro-brush-collection.svg', description: 'Premium multi-use brushes for flawless beauty therapy and make-up application.', price: 'Price on request' }
 ];
 
 function toSlug(name: string) {

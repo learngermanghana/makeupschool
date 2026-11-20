@@ -22,7 +22,7 @@ export default async function BlogPage() {
       <SectionHeading
         eyebrow="Blog"
         title="Beauty insights, student tips, and industry updates."
-        description="This page pulls published posts directly from Sedifex public blog feed with graceful local fallback content."
+        description="Read beauty education tips and school guidance. Ask admissions on WhatsApp for the latest class updates."
       />
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         {posts.map((post) => (

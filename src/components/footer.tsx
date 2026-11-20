@@ -16,7 +16,7 @@ export function Footer() {
           <ul className="mt-4 space-y-3 text-sm text-white/80">
             {navigation.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="transition hover:text-white">
+                <Link href={item.href} target={item.href.startsWith('https://') ? '_blank' : undefined} rel={item.href.startsWith('https://') ? 'noopener noreferrer' : undefined} className="transition hover:text-white">
                   {item.label}
                 </Link>
               </li>

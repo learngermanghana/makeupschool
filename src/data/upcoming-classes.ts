@@ -47,15 +47,15 @@ function buildClassSlug(name: string, id: string) {
 
 export const upcomingClasses: UpcomingClass[] = [
   {
-    id: 'beauty-therapy-april',
-    slug: 'beauty-therapy-april',
+    id: 'beauty-therapy-enquiry',
+    slug: 'beauty-therapy-enquiry',
     name: 'Beauty Therapy',
     image: '/uploads/courses/WhatsApp Image 2026-03-21 at 17.57.49 (1).jpeg',
     imageAlt: 'Beauty therapy practical training in session',
-    startDate: '12 April 2026',
+    startDate: 'Confirm on WhatsApp',
     duration: '6 months',
-    schedule: 'Weekday • Morning',
-    slots: 'Limited slots',
+    schedule: 'Ask admissions for the next schedule',
+    slots: 'Confirm availability',
     category: 'Full Programs'
   }
 ];

@@ -12,6 +12,14 @@ A premium, conversion-focused beauty school website built with Next.js App Route
 - Registration form pulls the selected course price from Sedifex integration products/courses, creates a Sedifex student registration, and redirects the student/parent to secure Paystack checkout.
 - Sitemap and robots support for better search indexing readiness.
 
+## Temporary WhatsApp-only admissions mode (November 2026)
+
+- Online registration and checkout API routes are suspended at Vercel's routing layer (`/api/*` returns 503).
+- Course registration and class reservation buttons now open the school's WhatsApp admissions chat with a prefilled enquiry.
+- Sedifex public read calls are suspended in `src/lib/server/sedifex.ts`; public pages use local course, product, class and blog data while paused.
+- The registration page explains that admissions will confirm dates, availability, fees and payment arrangements; no browser payment form is active.
+- To resume online registration, restore Vercel API routing, remove the read suspension, restore the registration form and update the CTAs together.
+
 ## Vercel usage controls
 
 - Preview deployments are disabled for non-`main` branches in `vercel.json`, so routine branch pushes do not consume build minutes.

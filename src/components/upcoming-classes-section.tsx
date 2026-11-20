@@ -9,14 +9,6 @@ import { ButtonLink } from './button-link';
 
 const filters = ['All', 'Full Programs', 'Short Courses'] as const;
 
-function registerHref(item: import('@/data/upcoming-classes').UpcomingClass) {
-  const params = new URLSearchParams();
-  if (item.serviceId) params.set('courseId', item.serviceId);
-  params.set('course', item.name);
-  if (item.slotId) params.set('classSlotId', item.slotId);
-  return `/register?${params.toString()}`;
-}
-
 export function UpcomingClassesSection({ preview = false, classes }: { preview?: boolean; classes: import('@/data/upcoming-classes').UpcomingClass[] }) {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
 
@@ -80,8 +72,8 @@ export function UpcomingClassesSection({ preview = false, classes }: { preview?:
                 </div>
               </dl>
               <div className="mt-7 flex flex-wrap gap-3">
-                <ButtonLink href={registerHref(item)}>Register now</ButtonLink>
-                <ButtonLink href={reserveClassWhatsAppLink(item.name)} variant="secondary" external>WhatsApp enquiries</ButtonLink>
+                <ButtonLink href={reserveClassWhatsAppLink(item.name)} external>Register on WhatsApp</ButtonLink>
+                <ButtonLink href={`/upcoming-classes/${item.slug}`} variant="secondary">View details</ButtonLink>
               </div>
             </div>
           </article>

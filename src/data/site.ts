@@ -1,3 +1,5 @@
+import { registerWhatsAppLink } from '@/lib/whatsapp';
+
 export const siteConfig = {
   url: 'https://make-upmore.com',
   name: 'Make Up & More School of Cosmetology',
@@ -31,6 +33,6 @@ export const navigation = [
   { href: '/gallery', label: 'Gallery' },
   { href: '/products', label: 'Products' },
   { href: '/blog', label: 'Blog' },
-  { href: '/register', label: 'Register' },
+  { href: registerWhatsAppLink(), label: 'Register via WhatsApp' },
   { href: '/contact', label: 'Contact' }
 ];
